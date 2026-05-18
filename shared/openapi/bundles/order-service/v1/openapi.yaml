@@ -1,0 +1,292 @@
+openapi: 3.0.3
+info:
+  title: OrderService API
+  description: API сервиса заказов на постройку космических кораблей
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/license/mit
+servers:
+  - url: /
+    description: Default server
+security: []
+tags:
+  - name: Orders
+    description: Управление заказами
+paths:
+  /api/v1/orders:
+    post:
+      tags:
+        - Orders
+      summary: Создать заказ
+      description: Создаёт новый заказ на основе выбранных пользователем деталей
+      operationId: orderServiceCreateOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Заказ успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/orders/{order_uuid}:
+    get:
+      tags:
+        - Orders
+      summary: Получить заказ по UUID
+      description: Возвращает информацию о заказе
+      operationId: orderServiceGetOrder
+      parameters:
+        - name: order_uuid
+          in: path
+          required: true
+          description: UUID заказа
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Заказ найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/orders/{order_uuid}/pay:
+    post:
+      tags:
+        - Orders
+      summary: Оплатить заказ
+      description: Проводит оплату ранее созданного заказа
+      operationId: orderServicePayOrder
+      parameters:
+        - name: order_uuid
+          in: path
+          required: true
+          description: UUID заказа
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayOrderRequest'
+      responses:
+        '200':
+          description: Заказ успешно оплачен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/orders/{order_uuid}/cancel:
+    post:
+      tags:
+        - Orders
+      summary: Отменить заказ
+      description: Отменяет заказ, если он ещё не был оплачен
+      operationId: orderServiceCancelOrder
+      parameters:
+        - name: order_uuid
+          in: path
+          required: true
+          description: UUID заказа
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Заказ успешно отменён
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  schemas:
+    CreateOrderRequest:
+      type: object
+      required:
+        - user_uuid
+        - part_uuids
+      properties:
+        user_uuid:
+          type: string
+          format: uuid
+          description: UUID пользователя
+          example: 550e8400-e29b-41d4-a716-446655440000
+        part_uuids:
+          type: array
+          description: Список UUID деталей
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+          example:
+            - 111e8400-e29b-41d4-a716-446655440001
+            - 222e8400-e29b-41d4-a716-446655440002
+    CreateOrderResponse:
+      type: object
+      required:
+        - order_uuid
+        - total_price
+      properties:
+        order_uuid:
+          type: string
+          format: uuid
+          description: UUID созданного заказа
+          example: 333e8400-e29b-41d4-a716-446655440003
+        total_price:
+          type: number
+          format: double
+          description: Итоговая стоимость заказа
+          example: 123.45
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Машиночитаемый код ошибки
+          example: ORDER_NOT_FOUND
+        message:
+          type: string
+          description: Человекочитаемое описание ошибки
+          example: Order not found
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Дополнительная информация об ошибке
+    PaymentMethod:
+      type: string
+      description: Способ оплаты
+      enum:
+        - UNKNOWN
+        - CARD
+        - SBP
+        - CREDIT_CARD
+        - INVESTOR_MONEY
+      example: CARD
+    OrderStatus:
+      type: string
+      description: Статус заказа
+      enum:
+        - PENDING_PAYMENT
+        - PAID
+        - CANCELLED
+      example: PAID
+    Order:
+      type: object
+      required:
+        - order_uuid
+        - user_uuid
+        - part_uuids
+        - total_price
+        - status
+      properties:
+        order_uuid:
+          type: string
+          format: uuid
+          description: UUID заказа
+          example: 333e8400-e29b-41d4-a716-446655440003
+        user_uuid:
+          type: string
+          format: uuid
+          description: UUID пользователя
+          example: 550e8400-e29b-41d4-a716-446655440000
+        part_uuids:
+          type: array
+          description: Список UUID деталей
+          items:
+            type: string
+            format: uuid
+          example:
+            - 111e8400-e29b-41d4-a716-446655440001
+            - 222e8400-e29b-41d4-a716-446655440002
+        total_price:
+          type: number
+          format: double
+          description: Итоговая стоимость заказа
+          example: 123.45
+        transaction_uuid:
+          type: string
+          format: uuid
+          nullable: true
+          description: UUID транзакции, если заказ оплачен
+          example: 444e8400-e29b-41d4-a716-446655440004
+        payment_method:
+          type: string
+          allOf:
+            - $ref: '#/components/schemas/PaymentMethod'
+          nullable: true
+          description: Способ оплаты, если заказ оплачен
+          example: CARD
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+    PayOrderRequest:
+      type: object
+      required:
+        - payment_method
+      properties:
+        payment_method:
+          $ref: '#/components/schemas/PaymentMethod'
+    PayOrderResponse:
+      type: object
+      required:
+        - transaction_uuid
+      properties:
+        transaction_uuid:
+          type: string
+          format: uuid
+          description: UUID транзакции
+          example: 444e8400-e29b-41d4-a716-446655440004
+  responses:
+    BadRequest:
+      description: Некорректный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: Внутренняя ошибка сервиса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Конфликт состояния ресурса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

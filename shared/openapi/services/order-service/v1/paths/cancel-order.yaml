@@ -1,0 +1,23 @@
+post:
+  tags:
+    - Orders
+  summary: Отменить заказ
+  description: Отменяет заказ, если он ещё не был оплачен
+  operationId: orderServiceCancelOrder
+  parameters:
+    - name: order_uuid
+      in: path
+      required: true
+      description: UUID заказа
+      schema:
+        type: string
+        format: uuid
+  responses:
+    "204":
+      description: Заказ успешно отменён
+    "404":
+      $ref: "../responses/NotFound.yaml"
+    "409":
+      $ref: "../responses/Conflict.yaml"
+    "500":
+      $ref: "../responses/InternalServerError.yaml"

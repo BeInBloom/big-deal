@@ -1,0 +1,5 @@
+description: Конфликт состояния ресурса
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/ErrorResponse.yaml"

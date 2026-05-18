@@ -1,0 +1,25 @@
+get:
+  tags:
+    - Orders
+  summary: Получить заказ по UUID
+  description: Возвращает информацию о заказе
+  operationId: orderServiceGetOrder
+  parameters:
+    - name: order_uuid
+      in: path
+      required: true
+      description: UUID заказа
+      schema:
+        type: string
+        format: uuid
+  responses:
+    "200":
+      description: Заказ найден
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/Order.yaml"
+    "404":
+      $ref: "../responses/NotFound.yaml"
+    "500":
+      $ref: "../responses/InternalServerError.yaml"

@@ -1,0 +1,35 @@
+post:
+  tags:
+    - Orders
+  summary: Оплатить заказ
+  description: Проводит оплату ранее созданного заказа
+  operationId: orderServicePayOrder
+  parameters:
+    - name: order_uuid
+      in: path
+      required: true
+      description: UUID заказа
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/PayOrderRequest.yaml"
+  responses:
+    "200":
+      description: Заказ успешно оплачен
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/PayOrderResponse.yaml"
+    "400":
+      $ref: "../responses/BadRequest.yaml"
+    "404":
+      $ref: "../responses/NotFound.yaml"
+    "409":
+      $ref: "../responses/Conflict.yaml"
+    "500":
+      $ref: "../responses/InternalServerError.yaml"

@@ -1,0 +1,5 @@
+description: Внутренняя ошибка сервиса
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/ErrorResponse.yaml"

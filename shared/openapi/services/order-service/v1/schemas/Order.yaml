@@ -1,0 +1,53 @@
+type: object
+required:
+  - order_uuid
+  - user_uuid
+  - part_uuids
+  - total_price
+  - status
+properties:
+  order_uuid:
+    type: string
+    format: uuid
+    description: UUID заказа
+    example: 333e8400-e29b-41d4-a716-446655440003
+
+  user_uuid:
+    type: string
+    format: uuid
+    description: UUID пользователя
+    example: 550e8400-e29b-41d4-a716-446655440000
+
+  part_uuids:
+    type: array
+    description: Список UUID деталей
+    items:
+      type: string
+      format: uuid
+    example:
+      - 111e8400-e29b-41d4-a716-446655440001
+      - 222e8400-e29b-41d4-a716-446655440002
+
+  total_price:
+    type: number
+    format: double
+    description: Итоговая стоимость заказа
+    example: 123.45
+
+  transaction_uuid:
+    type: string
+    format: uuid
+    nullable: true
+    description: UUID транзакции, если заказ оплачен
+    example: 444e8400-e29b-41d4-a716-446655440004
+
+  payment_method:
+    type: string
+    allOf:
+      - $ref: "./PaymentMethod.yaml"
+    nullable: true
+    description: Способ оплаты, если заказ оплачен
+    example: CARD
+
+  status:
+    $ref: "./OrderStatus.yaml"

@@ -1,0 +1,5 @@
+description: Некорректный запрос
+content:
+  application/json:
+    schema:
+      $ref: "../schemas/ErrorResponse.yaml"

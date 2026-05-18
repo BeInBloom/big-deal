@@ -1,0 +1,23 @@
+post:
+  tags:
+    - Orders
+  summary: Создать заказ
+  description: Создаёт новый заказ на основе выбранных пользователем деталей
+  operationId: orderServiceCreateOrder
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "../schemas/CreateOrderRequest.yaml"
+  responses:
+    "201":
+      description: Заказ успешно создан
+      content:
+        application/json:
+          schema:
+            $ref: "../schemas/CreateOrderResponse.yaml"
+    "400":
+      $ref: "../responses/BadRequest.yaml"
+    "500":
+      $ref: "../responses/InternalServerError.yaml"
