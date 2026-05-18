@@ -1,36 +1,38 @@
-version: '3'
+version: "3"
 
 # Глобальные переменные проекта
 vars:
-  GO_VERSION: '1.26'
-  GOLANGCI_LINT_VERSION: 'v2.1.5'
-  GCI_VERSION: 'v0.13.6'
-  GOFUMPT_VERSION: 'v0.8.0'
-  BUF_VERSION: '1.53.0'
-  PROTOC_GEN_GO_VERSION: 'v1.36.6'
-  PROTOC_GEN_GO_GRPC_VERSION: 'v1.5.1'
-  OGEN_VERSION: 'v1.12.0'
-  YQ_VERSION: 'v4.45.2'
-  GRPCURL_VERSION: 'v1.9.3'
+  GO_VERSION: "1.26"
+  GOLANGCI_LINT_VERSION: "v2.1.5"
+  GCI_VERSION: "v0.13.6"
+  GOFUMPT_VERSION: "v0.8.0"
+  BUF_VERSION: "1.53.0"
+  PROTOC_GEN_GO_VERSION: "v1.36.6"
+  PROTOC_GEN_GO_GRPC_VERSION: "v1.5.1"
+  OGEN_VERSION: "v1.12.0"
+  YQ_VERSION: "v4.45.2"
+  GRPCURL_VERSION: "v1.9.3"
 
-  BIN_DIR: '{{.ROOT_DIR}}/bin'
-  GOLANGCI_LINT: '{{.BIN_DIR}}/golangci-lint'
-  GCI: '{{.BIN_DIR}}/gci'
-  GOFUMPT: '{{.BIN_DIR}}/gofumpt'
-  BUF: '{{.BIN_DIR}}/buf'
-  OGEN: '{{.BIN_DIR}}/ogen'
-  YQ: '{{.BIN_DIR}}/yq'
-  PROTOC_GEN_GO: '{{.BIN_DIR}}/protoc-gen-go'
-  PROTOC_GEN_GO_GRPC: '{{.BIN_DIR}}/protoc-gen-go-grpc'
-  GRPCURL: '{{.BIN_DIR}}/grpcurl'
+  BIN_DIR: "{{.ROOT_DIR}}/bin"
+  GOLANGCI_LINT: "{{.BIN_DIR}}/golangci-lint"
+  GCI: "{{.BIN_DIR}}/gci"
+  GOFUMPT: "{{.BIN_DIR}}/gofumpt"
+  BUF: "{{.BIN_DIR}}/buf"
+  OGEN: "{{.BIN_DIR}}/ogen"
+  YQ: "{{.BIN_DIR}}/yq"
+  PROTOC_GEN_GO: "{{.BIN_DIR}}/protoc-gen-go"
+  PROTOC_GEN_GO_GRPC: "{{.BIN_DIR}}/protoc-gen-go-grpc"
+  GRPCURL: "{{.BIN_DIR}}/grpcurl"
 
-  NODE_MODULES_DIR: '{{.ROOT_DIR}}/node_modules/.bin'
-  REDOCLY: '{{.NODE_MODULES_DIR}}/redocly'
+  NODE_MODULES_DIR: "{{.ROOT_DIR}}/node_modules/.bin"
+  REDOCLY: "{{.NODE_MODULES_DIR}}/redocly"
 
-  OPEN_API_ORDER_V1_BASE: '{{.ROOT_DIR}}/shared/openapi/services/order-service/openapi.yaml'
-  OPEN_API_ORDER_V1_BUNDLE: '{{.ROOT_DIR}}/shared/openapi/bundles/order-service.openapi.v1.bundle.yaml'
+  OPEN_API_ORDER_V1_BASE: "{{.ROOT_DIR}}/shared/openapi/services/order-service/v1/openapi.yaml"
+  OPEN_API_ORDER_V1_BUNDLE: "{{.ROOT_DIR}}/shared/openapi/bundles/order-service/v1/openapi.yaml"
+  OPEN_API_ORDER_V1_GO_OGEN_CONFIG: "{{.ROOT_DIR}}/tools/openapi/codegen/order-service/v1/go.ogen.yaml"
 
-  OPEN_API_FILES: '{{.ROOT_DIR}}/shared/openapi/bundles'
+  GENERATED_GO_DIR: "{{.ROOT_DIR}}/generated/go"
+  GO_CACHE_DIR: "{{.ROOT_DIR}}/.cache/go-build"
 
   MODULES: assembly inventory order payment platform iam notification
 
@@ -40,7 +42,7 @@ tasks:
     summary: |
       Эта задача проверяет наличие инструментов форматирования кода gofumpt и gci в директории bin.
       Если инструменты не найдены, они будут автоматически установлены с указанными версиями.
-      
+
       Используется:
         - gofumpt: для форматирования кода Go
         - gci: для сортировки импортов Go
@@ -63,15 +65,15 @@ tasks:
     summary: |
       Форматирует все Go-файлы проекта с использованием gofumpt для стандартизации кода
       и gci для сортировки импортов, исключая файлы в директориях mocks.
-      
+
       Использует инструменты:
         - gofumpt: для стандартизации форматирования
         - gci: для сортировки импортов по стандартным группам
-    deps: [ install-formatters ]
+    deps: [install-formatters]
     cmds:
       - |
         echo "🧼 Форматируем через gofumpt ..."
-        
+
         for module in {{.MODULES}}; do
           if [ -d "$module" ]; then
             echo "🧼 Форматируем $module"
@@ -80,7 +82,7 @@ tasks:
         done
       - |
         echo "🎯 Сортируем импорты через gci ..."
-        
+
         for module in {{.MODULES}}; do
           if [ -d "$module" ]; then
             echo "🎯 Сортируем импорты в $module"
@@ -93,7 +95,7 @@ tasks:
     summary: |
       Проверяет наличие golangci-lint в директории bin.
       Если инструмент не найден, автоматически устанавливает его через go install.
-      
+
       Устанавливаемая версия: {{.GOLANGCI_LINT_VERSION}}
     cmds:
       - |
@@ -111,14 +113,14 @@ tasks:
       Запускает линтер golangci-lint для всех модулей проекта.
       Линтер проверяет код на соответствие стандартам качества и лучшим практикам.
       Проверка включает проверку безопасности через gosec (встроенный в golangci-lint).
-      
+
       Зависимости:
         - install-golangci-lint: автоматически устанавливает линтер
         - format: форматирует код перед проверкой
-    deps: [ install-golangci-lint ]
+    deps: [install-golangci-lint]
     vars:
-      MODULES: '{{.MODULES}}'
-      GOLANGCI_LINT: '{{.GOLANGCI_LINT}}'
+      MODULES: "{{.MODULES}}"
+      GOLANGCI_LINT: "{{.GOLANGCI_LINT}}"
     cmds:
       - |
         set -e
@@ -169,14 +171,14 @@ tasks:
       - test -x {{.PROTOC_GEN_GO_GRPC}}
 
   proto:gen:
-    deps: [ install-buf, proto:install-plugins, proto:lint ]
+    deps: [install-buf, proto:install-plugins, proto:lint]
     desc: Генерация Go-кода из .proto
     dir: shared/proto
     cmds:
       - 'PATH="{{.BIN_DIR}}:$PATH" "{{.BUF}}" generate'
 
   proto:lint:
-    deps: [ install-buf, proto:install-plugins ]
+    deps: [install-buf, proto:install-plugins]
     desc: Проверка .proto-файлов на соответствие стилю
     dir: shared/proto
     cmds:
@@ -197,9 +199,9 @@ tasks:
     status:
       - test -x {{.REDOCLY}}
 
-  redocly-cli:order-v1-bundle:
-    desc: Собрать OpenAPI в один файл через локальный redocly
-    deps: [ redocly-cli:install ]
+  openapi:bundle:order:v1:
+    desc: Собрать OpenAPI Order Service v1 в один файл
+    deps: [redocly-cli:install]
     cmds:
       - |
         set -eu
@@ -210,104 +212,168 @@ tasks:
         mkdir -p "$(dirname "{{.OPEN_API_ORDER_V1_BUNDLE}}")"
         "{{.REDOCLY}}" bundle "{{.OPEN_API_ORDER_V1_BASE}}" -o "{{.OPEN_API_ORDER_V1_BUNDLE}}"
 
+  openapi:bundle:
+    desc: Собрать все OpenAPI спецификации в bundles
+    cmds:
+      - task: openapi:bundle:order:v1
+
+  redocly-cli:order-v1-bundle:
+    desc: Собрать OpenAPI Order Service v1 через локальный redocly
+    cmds:
+      - task: openapi:bundle:order:v1
+
   redocly-cli:bundle:
     desc: Собрать все схемы OpenAPI в общие файлы через локальный redocly
-    deps: [ redocly-cli:install ]
     cmds:
-      - task: redocly-cli:order-v1-bundle
+      - task: openapi:bundle
 
   ogen:install:
     desc: "Скачивает ogen в папку bin"
     cmds:
       - |
         set -eu
-        [ -x "{{.OGEN}}" ] || {
+        if [ ! -x "{{.OGEN}}" ] || ! "{{.OGEN}}" --version 2>/dev/null | grep -q "{{.OGEN_VERSION}}"; then
           mkdir -p "{{.BIN_DIR}}"
           GOBIN="{{.BIN_DIR}}" go install github.com/ogen-go/ogen/cmd/ogen@{{.OGEN_VERSION}}
-        }
+        fi
     status:
       - test -x {{.OGEN}}
+      - '{{.OGEN}} --version 2>/dev/null | grep -q "{{.OGEN_VERSION}}"'
 
-  ogen:gen:
-    desc: "Генерация Go-кода из всех OpenAPI-деклараций с x-ogen"
-    deps: [ ogen:install, yq:install ]
+  openapi:gen:go:order:v1:
+    desc: "Генерация Go-кода Order Service v1 через ogen"
+    deps: [ogen:install, yq:install]
     cmds:
-      - task: redocly-cli:bundle
+      - task: openapi:bundle:order:v1
       - |
         set -eu
-        if [ ! -d "{{.OPEN_API_FILES}}" ]; then
-          echo "❌ OpenAPI bundles directory not found: {{.OPEN_API_FILES}}"
+        config="{{.OPEN_API_ORDER_V1_GO_OGEN_CONFIG}}"
+        if [ ! -f "$config" ]; then
+          echo "❌ Ogen config not found: $config"
           exit 1
         fi
 
-        files="$(mktemp)"
-        trap 'rm -f "$files"' EXIT
-        find "{{.OPEN_API_FILES}}" -type f \( -name '*.yaml' -o -name '*.yml' \) -print > "$files"
+        source=$("{{.YQ}}" e '.source // ""' "$config")
+        target=$("{{.YQ}}" e '.target // ""' "$config")
+        package=$("{{.YQ}}" e '.package // ""' "$config")
 
-        generated=0
-        while IFS= read -r file; do
-          if grep -q '^[[:space:]]*x-ogen:' "$file"; then
-            echo "🚀 Generating from: $file"
-            target=$("{{.YQ}}" e '."x-ogen".target // ""' "$file")
-            package=$("{{.YQ}}" e '."x-ogen".package // ""' "$file")
+        if [ -z "$source" ] || [ "$source" = "null" ]; then
+          echo "❌ Missing source in $config"
+          exit 1
+        fi
+        if [ -z "$target" ] || [ "$target" = "null" ]; then
+          echo "❌ Missing target in $config"
+          exit 1
+        fi
+        if [ -z "$package" ] || [ "$package" = "null" ]; then
+          echo "❌ Missing package in $config"
+          exit 1
+        fi
+        case "$package" in
+          [0-9]*|*[!A-Za-z0-9_]*)
+            echo "❌ Invalid Go package name in $config: $package"
+            exit 1
+            ;;
+        esac
 
-            if [ -z "$target" ] || [ "$target" = "null" ]; then
-              echo "❌ Missing x-ogen.target in $file"
-              exit 1
-            fi
-            if [ -z "$package" ] || [ "$package" = "null" ]; then
-              echo "❌ Missing x-ogen.package in $file"
-              exit 1
-            fi
-            case "$package" in
-              [0-9]*|*[!A-Za-z0-9_]*)
-                echo "❌ Invalid Go package name in $file: $package"
-                exit 1
-                ;;
-            esac
+        case "$source" in
+          ..|../*|*/..|*/../*)
+            echo "❌ Refusing to read OpenAPI source with parent directory segments: $source"
+            exit 1
+            ;;
+          /*) source_path="$source" ;;
+          *) source_path="{{.ROOT_DIR}}/$source" ;;
+        esac
+        case "$source_path" in
+          "{{.ROOT_DIR}}"/*) ;;
+          *)
+            echo "❌ Refusing to read OpenAPI source outside repository: $source_path"
+            exit 1
+            ;;
+        esac
+        if [ ! -f "$source_path" ]; then
+          echo "❌ OpenAPI source not found: $source_path"
+          exit 1
+        fi
 
-            case "$target" in
-              ..|../*|*/..|*/../*)
-                echo "❌ Refusing to run ogen --clean with parent directory segments: $target"
-                exit 1
-                ;;
-              /*) target_path="$target" ;;
-              *) target_path="{{.ROOT_DIR}}/$target" ;;
-            esac
-            case "$target_path" in
-              "{{.ROOT_DIR}}"/*) ;;
-              *)
-                echo "❌ Refusing to run ogen --clean outside repository: $target_path"
-                exit 1
-                ;;
-            esac
-            if [ "$target_path" = "{{.ROOT_DIR}}" ]; then
-              echo "❌ Refusing to run ogen --clean against repository root"
-              exit 1
-            fi
+        case "$target" in
+          ..|../*|*/..|*/../*)
+            echo "❌ Refusing to run ogen --clean with parent directory segments: $target"
+            exit 1
+            ;;
+          /*) target_path="$target" ;;
+          *) target_path="{{.ROOT_DIR}}/$target" ;;
+        esac
+        case "$target_path" in
+          "{{.ROOT_DIR}}"/*) ;;
+          *)
+            echo "❌ Refusing to run ogen --clean outside repository: $target_path"
+            exit 1
+            ;;
+        esac
+        if [ "$target_path" = "{{.ROOT_DIR}}" ]; then
+          echo "❌ Refusing to run ogen --clean against repository root"
+          exit 1
+        fi
 
-            mkdir -p "$target_path"
-            echo "📁 Target: $target_path"
-            echo "📦 Package: $package"
-            "{{.OGEN}}" \
-              --target "$target_path" \
-              --package "$package" \
-              --clean \
-              "$file"
-            generated=1
+        mkdir -p "$target_path"
+        echo "🚀 Generating from: $source_path"
+        echo "📁 Target: $target_path"
+        echo "📦 Package: $package"
+        "{{.OGEN}}" \
+          --target "$target_path" \
+          --package "$package" \
+          --clean \
+          "$source_path"
+
+  openapi:gen:go:
+    desc: "Генерация Go-кода из OpenAPI спецификаций"
+    cmds:
+      - task: openapi:gen:go:order:v1
+      - task: generated:tidy:go
+
+  ogen:gen:
+    desc: "Генерация Go-кода из OpenAPI спецификаций через ogen"
+    cmds:
+      - task: openapi:gen:go
+
+  generated:tidy:go:
+    desc: "Обновляет go.mod/go.sum для generated Go-модулей"
+    cmds:
+      - |
+        set -eu
+        if [ ! -d "{{.GENERATED_GO_DIR}}" ]; then
+          echo "No generated Go modules found"
+          exit 0
+        fi
+        for mod in "{{.GENERATED_GO_DIR}}"/*; do
+          if [ -f "$mod/go.mod" ]; then
+            echo "🔄 go mod tidy: $mod"
+            (cd "$mod" && GOCACHE="${GOCACHE:-{{.GO_CACHE_DIR}}}" go mod tidy)
           fi
-        done < "$files"
+        done
 
-        if [ "$generated" -eq 0 ]; then
-          echo "❌ No OpenAPI bundle with x-ogen metadata found in {{.OPEN_API_FILES}}"
-          exit 1
+  generated:test:go:
+    desc: "Запускает тесты generated Go-модулей"
+    cmds:
+      - |
+        set -eu
+        if [ ! -d "{{.GENERATED_GO_DIR}}" ]; then
+          echo "No generated Go modules found"
+          exit 0
         fi
+        for mod in "{{.GENERATED_GO_DIR}}"/*; do
+          if [ -f "$mod/go.mod" ]; then
+            echo "🧪 go test: $mod"
+            (cd "$mod" && GOCACHE="${GOCACHE:-{{.GO_CACHE_DIR}}}" go test ./...)
+          fi
+        done
 
   gen:
     desc: "Генерация всех proto и OpenAPI деклараций"
     cmds:
       - task: proto:gen
-      - task: ogen:gen
+      - task: openapi:gen:go
 
   deps:update:
     desc: "Обновление зависимостей в go.mod во всех модулях"
@@ -347,20 +413,20 @@ tasks:
 
   test-api:
     desc: "🧪 Запуск тестов для проверки API микросервисов"
-    deps: [ grpcurl:install ]
+    deps: [grpcurl:install]
     cmds:
       - |
         echo "🧪 Тестирование API микросервисов через gRPC и REST"
-        
+
         echo "📦 Тест 1: Получение списка деталей из Inventory"
         PARTS_RESPONSE=$({{.GRPCURL}} -plaintext -d '{"filter":{}}' localhost:50051 inventory.v1.InventoryService/ListParts)
-        
+
         if [[ -z "$PARTS_RESPONSE" || "$PARTS_RESPONSE" == *"error"* ]]; then
           echo "❌ Не удалось получить список деталей."
           echo "🔍 Ответ сервера: $PARTS_RESPONSE"
           exit 1
         fi
-        
+
         # Извлекаем UUID первой детали для дальнейших тестов
         PART_UUID=$(echo $PARTS_RESPONSE | grep -o '"uuid": "[^"]*' | head -1 | cut -d'"' -f4)
         if [ -z "$PART_UUID" ]; then
@@ -369,17 +435,17 @@ tasks:
           exit 1
         fi
         echo "✅ Успешно получен список деталей, первая UUID: $PART_UUID"
-        
+
         echo
         echo "🔍 Тест 2: Получение информации о детали по UUID"
         PART_RESPONSE=$({{.GRPCURL}} -plaintext -d "{\"uuid\":\"$PART_UUID\"}" localhost:50051 inventory.v1.InventoryService/GetPart)
-        
+
         if [[ -z "$PART_RESPONSE" || "$PART_RESPONSE" == *"error"* ]]; then
           echo "❌ Не удалось получить информацию о детали."
           echo "🔍 Ответ сервера: $PART_RESPONSE"
           exit 1
         fi
-        
+
         # Извлекаем имя детали 
         PART_NAME=$(echo $PART_RESPONSE | grep -o '"name": "[^"]*' | cut -d'"' -f4)
         if [ -z "$PART_NAME" ]; then
@@ -388,25 +454,25 @@ tasks:
           exit 1
         fi
         echo "✅ Успешно получена деталь: $PART_NAME"
-        
+
         echo
         echo "👤 Тест 3: Создание пользователя для тестов"
         # Генерируем уникальный UUID для пользователя
         USER_UUID=$(uuidgen | tr '[:upper:]' '[:lower:]')
         echo "✅ Сгенерирован UUID пользователя: $USER_UUID"
-        
+
         echo
         echo "📝 Тест 4: Создание заказа (REST API)"
         ORDER_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/v1/orders" \
           -H "Content-Type: application/json" \
           -d "{\"user_uuid\":\"$USER_UUID\",\"part_uuids\":[\"$PART_UUID\"]}")
-        
+
         if [[ -z "$ORDER_RESPONSE" || "$ORDER_RESPONSE" == *"error"* ]]; then
           echo "❌ Не удалось создать заказ."
           echo "🔍 Ответ сервера: $ORDER_RESPONSE"
           exit 1
         fi
-        
+
         # Извлекаем UUID заказа с учетом разных форматов JSON
         ORDER_UUID=$(echo $ORDER_RESPONSE | grep -o '"uuid":"[^"]*' | cut -d'"' -f4)
         if [ -z "$ORDER_UUID" ]; then
@@ -418,17 +484,17 @@ tasks:
           fi
         fi
         echo "✅ Успешно создан заказ с UUID: $ORDER_UUID"
-        
+
         echo
         echo "📊 Тест 5: Проверка начального статуса заказа (должен быть PENDING_PAYMENT)"
         ORDER_INFO_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/v1/orders/$ORDER_UUID")
-        
+
         if [[ -z "$ORDER_INFO_RESPONSE" || "$ORDER_INFO_RESPONSE" == *"error"* ]]; then
           echo "❌ Не удалось получить информацию о заказе."
           echo "🔍 Ответ сервера: $ORDER_INFO_RESPONSE"
           exit 1
         fi
-        
+
         # Извлекаем статус заказа с учетом разных форматов JSON
         ORDER_STATUS=$(echo $ORDER_INFO_RESPONSE | grep -o '"status":"[^"]*' | cut -d'"' -f4)
         if [ -z "$ORDER_STATUS" ]; then
@@ -439,56 +505,56 @@ tasks:
             exit 1
           fi
         fi
-        
+
         # Проверяем, что начальный статус PENDING_PAYMENT
         if [[ "$ORDER_STATUS" != *"PENDING_PAYMENT"* ]]; then
           echo "❌ Неверный начальный статус заказа. Ожидался PENDING_PAYMENT, получен: $ORDER_STATUS"
           exit 1
         fi
         echo "✅ Начальный статус заказа корректный: $ORDER_STATUS"
-        
+
         echo
         echo "💰 Тест 6: Оплата заказа (REST API)"
         PAY_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/v1/orders/$ORDER_UUID/pay" \
           -H "Content-Type: application/json" \
           -d "{\"payment_method\":\"PAYMENT_METHOD_CARD\"}")
-        
+
         if [[ "$PAY_RESPONSE" == *"error"* ]]; then
           echo "❌ Ошибка при оплате заказа."
           echo "🔍 Ответ сервера: $PAY_RESPONSE"
           exit 1
         fi
         echo "✅ Заказ успешно оплачен"
-        
+
         echo
         echo "📊 Тест 7: Проверка статуса после оплаты (должен быть PAID)"
         ORDER_INFO_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/v1/orders/$ORDER_UUID")
-        
+
         # Извлекаем статус заказа
         ORDER_STATUS=$(echo $ORDER_INFO_RESPONSE | grep -o '"status":"[^"]*' | cut -d'"' -f4)
         if [ -z "$ORDER_STATUS" ]; then
           ORDER_STATUS=$(echo $ORDER_INFO_RESPONSE | grep -o '"status": "[^"]*' | cut -d'"' -f4)
         fi
-        
+
         # Проверяем, что статус стал PAID
         if [[ "$ORDER_STATUS" != *"PAID"* && "$ORDER_STATUS" != *"ASSEMBLED"* ]]; then
           echo "❌ Неверный статус заказа после оплаты. Ожидался PAID или ASSEMBLED, получен: $ORDER_STATUS"
           exit 1
         fi
         echo "✅ Статус заказа после оплаты: $ORDER_STATUS"
-        
+
         echo
         echo "📝 Тест 8: Создание второго заказа для отмены (REST API)"
         ORDER2_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/v1/orders" \
           -H "Content-Type: application/json" \
           -d "{\"user_uuid\":\"$USER_UUID\",\"part_uuids\":[\"$PART_UUID\"]}")
-        
+
         if [[ -z "$ORDER2_RESPONSE" || "$ORDER2_RESPONSE" == *"error"* ]]; then
           echo "❌ Не удалось создать второй заказ."
           echo "🔍 Ответ сервера: $ORDER2_RESPONSE"
           exit 1
         fi
-        
+
         # Извлекаем UUID второго заказа с учетом разных форматов JSON
         ORDER2_UUID=$(echo $ORDER2_RESPONSE | grep -o '"uuid":"[^"]*' | cut -d'"' -f4)
         if [ -z "$ORDER2_UUID" ]; then
@@ -500,41 +566,41 @@ tasks:
           fi
         fi
         echo "✅ Успешно создан второй заказ с UUID: $ORDER2_UUID"
-        
+
         # Проверяем его начальный статус
         ORDER2_INFO=$(curl -s -X GET "http://localhost:8080/api/v1/orders/$ORDER2_UUID")
         ORDER2_STATUS=$(echo $ORDER2_INFO | grep -o '"status":"[^"]*' | cut -d'"' -f4)
         if [ -z "$ORDER2_STATUS" ]; then
           ORDER2_STATUS=$(echo $ORDER2_INFO | grep -o '"status": "[^"]*' | cut -d'"' -f4)
         fi
-        
+
         if [[ "$ORDER2_STATUS" != *"PENDING_PAYMENT"* ]]; then
           echo "❌ Неверный начальный статус второго заказа. Ожидался PENDING_PAYMENT, получен: $ORDER2_STATUS"
           exit 1
         fi
         echo "✅ Начальный статус второго заказа: $ORDER2_STATUS"
-        
+
         echo
         echo "❌ Тест 9: Отмена второго заказа (REST API)"
         echo "Ожидаем 2 секунды перед отменой..."
         sleep 2
-        
+
         curl -s -X POST "http://localhost:8080/api/v1/orders/$ORDER2_UUID/cancel"
-        
+
         echo "Проверяем статус после отмены..."
-        
+
         ORDER2_INFO=$(curl -s -X GET "http://localhost:8080/api/v1/orders/$ORDER2_UUID")
         ORDER2_STATUS=$(echo $ORDER2_INFO | grep -o '"status":"[^"]*' | cut -d'"' -f4)
         if [ -z "$ORDER2_STATUS" ]; then
           ORDER2_STATUS=$(echo $ORDER2_INFO | grep -o '"status": "[^"]*' | cut -d'"' -f4)
         fi
-        
+
         if [[ "$ORDER2_STATUS" != *"CANCELLED"* ]]; then
           echo "❌ Неверный статус отмененного заказа. Ожидался CANCELLED, получен: $ORDER2_STATUS"
           echo "🔍 Детали заказа: $ORDER2_INFO"
           exit 1
         fi
         echo "✅ Статус второго заказа после отмены: $ORDER2_STATUS"
-        
+
         echo
         echo "🎉 Все тесты API успешно выполнены!"
