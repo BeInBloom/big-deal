@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package inventory.v1;
 
-option go_package = "github.com/your/module/gen/inventory/v1;inventoryv1";
-
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/your/module/gen/inventory/v1;inventoryv1";
 
 service InventoryService {
   rpc GetPart(GetPartRequest) returns (GetPartResponse);
