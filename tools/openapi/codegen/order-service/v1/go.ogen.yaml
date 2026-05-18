@@ -1,0 +1,3 @@
+source: shared/openapi/bundles/order-service/v1/openapi.yaml
+target: generated/go/order-service/openapi/v1
+package: openapi
