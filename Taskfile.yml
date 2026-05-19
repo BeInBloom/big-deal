@@ -31,6 +31,7 @@ vars:
   OPEN_API_ORDER_V1_BUNDLE: "{{.ROOT_DIR}}/shared/openapi/bundles/order-service/v1/openapi.yaml"
   OPEN_API_ORDER_V1_GO_OGEN_CONFIG: "{{.ROOT_DIR}}/tools/openapi/codegen/order-service/v1/go.ogen.yaml"
 
+  GENERATED_DIR: "{{.ROOT_DIR}}/generated"
   GENERATED_GO_DIR: "{{.ROOT_DIR}}/generated/go"
   GO_CACHE_DIR: "{{.ROOT_DIR}}/.cache/go-build"
 
@@ -173,16 +174,14 @@ tasks:
   proto:gen:
     deps: [install-buf, proto:install-plugins, proto:lint]
     desc: Генерация Go-кода из .proto
-    dir: shared/proto
     cmds:
-      - 'PATH="{{.BIN_DIR}}:$PATH" "{{.BUF}}" generate'
+      - 'PATH="{{.BIN_DIR}}:$PATH" "{{.BUF}}" generate shared/proto --template shared/proto/buf.gen.yaml'
 
   proto:lint:
     deps: [install-buf, proto:install-plugins]
     desc: Проверка .proto-файлов на соответствие стилю
-    dir: shared/proto
     cmds:
-      - '"{{.BUF}}" lint'
+      - '"{{.BUF}}" lint shared/proto'
 
   redocly-cli:install:
     desc: Установить локально Redocly CLI
@@ -342,32 +341,24 @@ tasks:
     cmds:
       - |
         set -eu
-        if [ ! -d "{{.GENERATED_GO_DIR}}" ]; then
-          echo "No generated Go modules found"
+        if [ ! -f "{{.GENERATED_GO_DIR}}/go.mod" ]; then
+          echo "No generated Go module found"
           exit 0
         fi
-        for mod in "{{.GENERATED_GO_DIR}}"/*; do
-          if [ -f "$mod/go.mod" ]; then
-            echo "🔄 go mod tidy: $mod"
-            (cd "$mod" && GOCACHE="${GOCACHE:-{{.GO_CACHE_DIR}}}" go mod tidy)
-          fi
-        done
+        echo "🔄 go mod tidy: {{.GENERATED_GO_DIR}}"
+        (cd "{{.GENERATED_GO_DIR}}" && GOCACHE="${GOCACHE:-{{.GO_CACHE_DIR}}}" go mod tidy)
 
   generated:test:go:
     desc: "Запускает тесты generated Go-модулей"
     cmds:
       - |
         set -eu
-        if [ ! -d "{{.GENERATED_GO_DIR}}" ]; then
-          echo "No generated Go modules found"
+        if [ ! -f "{{.GENERATED_GO_DIR}}/go.mod" ]; then
+          echo "No generated Go module found"
           exit 0
         fi
-        for mod in "{{.GENERATED_GO_DIR}}"/*; do
-          if [ -f "$mod/go.mod" ]; then
-            echo "🧪 go test: $mod"
-            (cd "$mod" && GOCACHE="${GOCACHE:-{{.GO_CACHE_DIR}}}" go test ./...)
-          fi
-        done
+        echo "🧪 go test: {{.GENERATED_GO_DIR}}"
+        (cd "{{.GENERATED_GO_DIR}}" && GOCACHE="${GOCACHE:-{{.GO_CACHE_DIR}}}" go test ./...)
 
   gen:
     desc: "Генерация всех proto и OpenAPI деклараций"
