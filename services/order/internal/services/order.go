@@ -26,6 +26,7 @@ type PartService interface {
 }
 
 type PaymentService interface {
+	// TODO: payment adapter must make PayOrder idempotent by orderId.
 	PayOrder(
 		ctx context.Context,
 		userId models.UserId,
@@ -41,7 +42,7 @@ type OrderService struct {
 	newId    func() models.OrderId
 }
 
-func NewOrderService(repo OrderRepo, parts PartService, payments PaymentService) *OrderService {
+func New(repo OrderRepo, parts PartService, payments PaymentService) *OrderService {
 	return &OrderService{
 		repo:     repo,
 		parts:    parts,
