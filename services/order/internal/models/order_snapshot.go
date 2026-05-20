@@ -7,9 +7,8 @@ var ErrInvalidOrderSnapshot = errors.New("invalid order snapshot")
 type OrderSnapshot struct {
 	Id     OrderId
 	UserId UserId
-	Price  float64
 	Status OrderStatus
-	Parts  []PartId
+	Parts  Parts
 
 	PaymentMethod Option[PaymentMethod]
 	TransactionId Option[TransactionId]
@@ -32,8 +31,11 @@ func (s OrderSnapshot) TryPendingOrder() (PendingOrderState, error) {
 	if s.Status != PendingPayment {
 		return PendingOrderState{}, ErrInvalidOrderSnapshot
 	}
+	if s.hasPaymentData() {
+		return PendingOrderState{}, ErrInvalidOrderSnapshot
+	}
 
-	return NewPendingOrder(s.Id, s.UserId, s.Price, s.Parts), nil
+	return NewPendingOrder(s.Id, s.UserId, s.Parts), nil
 }
 
 func (s OrderSnapshot) TryPaidOrder() (PaidOrderState, error) {
@@ -54,7 +56,6 @@ func (s OrderSnapshot) TryPaidOrder() (PaidOrderState, error) {
 	return NewPaidOrder(
 		s.Id,
 		s.UserId,
-		s.Price,
 		s.Parts,
 		paymentMethod,
 		transactionId,
@@ -65,6 +66,13 @@ func (s OrderSnapshot) TryCanceledOrder() (CanceledOrderState, error) {
 	if s.Status != Canceled {
 		return CanceledOrderState{}, ErrInvalidOrderSnapshot
 	}
+	if s.hasPaymentData() {
+		return CanceledOrderState{}, ErrInvalidOrderSnapshot
+	}
 
-	return NewCanceledOrder(s.Id, s.UserId, s.Price, s.Parts), nil
+	return NewCanceledOrder(s.Id, s.UserId, s.Parts), nil
+}
+
+func (s OrderSnapshot) hasPaymentData() bool {
+	return s.PaymentMethod.IsSet() || s.TransactionId.IsSet()
 }

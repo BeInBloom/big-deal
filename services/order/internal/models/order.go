@@ -2,24 +2,29 @@ package models
 
 import "slices"
 
-type CanceledOrder = CanceledOrderState
-type PaidOrder = PaidOrderState
-type PendingOrder = PendingOrderState
+type (
+	CanceledOrder = CanceledOrderState
+	PaidOrder     = PaidOrderState
+	PendingOrder  = PendingOrderState
+)
 
 type Order interface {
 	Id() OrderId
 	UserId() UserId
-	Price() float64
+	Price() uint
 	Status() OrderStatus
-	Parts() []PartId
+	Parts() Parts
 	Snapshot() OrderSnapshot
 }
 
 type orderData struct {
 	id     OrderId
 	userId UserId
-	price  float64
-	parts  []PartId
+	parts  Parts
+}
+
+func (o orderData) Price() uint {
+	return o.parts.Price()
 }
 
 type (
@@ -39,38 +44,36 @@ type (
 	}
 )
 
-func NewPendingOrder(id OrderId, userId UserId, price float64, parts []PartId) PendingOrderState {
+func NewPendingOrder(id OrderId, userId UserId, parts Parts) PendingOrderState {
 	return PendingOrderState{
-		orderData: newOrderData(id, userId, price, parts),
+		orderData: newOrderData(id, userId, parts),
 	}
 }
 
 func NewPaidOrder(
 	id OrderId,
 	userId UserId,
-	price float64,
-	parts []PartId,
+	parts Parts,
 	paymentMethod PaymentMethod,
 	transactionId TransactionId,
 ) PaidOrderState {
 	return PaidOrderState{
-		orderData:     newOrderData(id, userId, price, parts),
+		orderData:     newOrderData(id, userId, parts),
 		paymentMethod: paymentMethod,
 		transactionId: transactionId,
 	}
 }
 
-func NewCanceledOrder(id OrderId, userId UserId, price float64, parts []PartId) CanceledOrderState {
+func NewCanceledOrder(id OrderId, userId UserId, parts Parts) CanceledOrderState {
 	return CanceledOrderState{
-		orderData: newOrderData(id, userId, price, parts),
+		orderData: newOrderData(id, userId, parts),
 	}
 }
 
-func newOrderData(id OrderId, userId UserId, price float64, parts []PartId) orderData {
+func newOrderData(id OrderId, userId UserId, parts Parts) orderData {
 	return orderData{
 		id:     id,
 		userId: userId,
-		price:  price,
 		parts:  slices.Clone(parts),
 	}
 }
@@ -83,11 +86,7 @@ func (o orderData) UserId() UserId {
 	return o.userId
 }
 
-func (o orderData) Price() float64 {
-	return o.price
-}
-
-func (o orderData) Parts() []PartId {
+func (o orderData) Parts() Parts {
 	return slices.Clone(o.parts)
 }
 
@@ -99,7 +98,6 @@ func (o CanceledOrderState) Snapshot() OrderSnapshot {
 	return OrderSnapshot{
 		Id:     o.Id(),
 		UserId: o.UserId(),
-		Price:  o.Price(),
 		Status: o.Status(),
 		Parts:  o.Parts(),
 	}
@@ -121,7 +119,6 @@ func (o PaidOrderState) Snapshot() OrderSnapshot {
 	return OrderSnapshot{
 		Id:            o.Id(),
 		UserId:        o.UserId(),
-		Price:         o.Price(),
 		Status:        o.Status(),
 		Parts:         o.Parts(),
 		PaymentMethod: Some(o.paymentMethod),
@@ -134,18 +131,17 @@ func (o PendingOrderState) Status() OrderStatus {
 }
 
 func (o PendingOrderState) Pay(method PaymentMethod, transactionId TransactionId) PaidOrderState {
-	return NewPaidOrder(o.Id(), o.UserId(), o.Price(), o.Parts(), method, transactionId)
+	return NewPaidOrder(o.Id(), o.UserId(), o.Parts(), method, transactionId)
 }
 
 func (o PendingOrderState) Cancel() CanceledOrderState {
-	return NewCanceledOrder(o.Id(), o.UserId(), o.Price(), o.Parts())
+	return NewCanceledOrder(o.Id(), o.UserId(), o.Parts())
 }
 
 func (o PendingOrderState) Snapshot() OrderSnapshot {
 	return OrderSnapshot{
 		Id:     o.Id(),
 		UserId: o.UserId(),
-		Price:  o.Price(),
 		Status: o.Status(),
 		Parts:  o.Parts(),
 	}

@@ -9,9 +9,9 @@ import (
 
 type orderService interface {
 	CancelOrder(context.Context, models.OrderId) error
-	CreateOrder(context.Context, models.UserId, []models.PartId) (models.Order, error)
+	CreateOrder(context.Context, models.UserId, []models.PartId) (models.PendingOrder, error)
 	GetOrder(context.Context, models.OrderId) (models.Order, error)
-	PayOrder(context.Context, models.OrderId, models.PaymentMethod) error
+	PayOrder(context.Context, models.OrderId, models.PaymentMethod) (models.PaidOrder, error)
 }
 
 type Handlers struct {
