@@ -3,6 +3,8 @@ package handlers
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	orders "github.com/BeInBloom/big-deal/generated/go/order-service/openapi/v1"
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
 )
@@ -18,29 +20,52 @@ type Handlers struct {
 	orderService orderService
 }
 
-func New() *Handlers {
-	return &Handlers{}
+func New(orderService orderService) *Handlers {
+	return &Handlers{
+		orderService: orderService,
+	}
 }
 
 func (h *Handlers) OrderServiceCancelOrder(
 	ctx context.Context,
 	params orders.OrderServiceCancelOrderParams,
 ) (orders.OrderServiceCancelOrderRes, error) {
-	panic("implement me")
+	if err := h.orderService.CancelOrder(ctx, models.OrderId(params.OrderUUID)); err != nil {
+		return newCancelOrderInternalServerError(), nil
+	}
+
+	return &orders.OrderServiceCancelOrderNoContent{}, nil
 }
 
 func (h *Handlers) OrderServiceCreateOrder(
 	ctx context.Context,
 	req *orders.CreateOrderRequest,
 ) (orders.OrderServiceCreateOrderRes, error) {
-	panic("implement me")
+	order, err := h.orderService.CreateOrder(
+		ctx,
+		models.UserId(req.UserUUID),
+		toPartIds(req.PartUuids),
+	)
+	if err != nil {
+		return newCreateOrderInternalServerError(), nil
+	}
+
+	return &orders.CreateOrderResponse{
+		OrderUUID:  uuid.UUID(order.Id()),
+		TotalPrice: toAPIPrice(order.Price()),
+	}, nil
 }
 
 func (h *Handlers) OrderServiceGetOrder(
 	ctx context.Context,
 	params orders.OrderServiceGetOrderParams,
 ) (orders.OrderServiceGetOrderRes, error) {
-	panic("implement me")
+	order, err := h.orderService.GetOrder(ctx, models.OrderId(params.OrderUUID))
+	if err != nil {
+		return newGetOrderInternalServerError(), nil
+	}
+
+	return toAPIOrder(order), nil
 }
 
 func (h *Handlers) OrderServicePayOrder(
@@ -48,5 +73,16 @@ func (h *Handlers) OrderServicePayOrder(
 	req *orders.PayOrderRequest,
 	params orders.OrderServicePayOrderParams,
 ) (orders.OrderServicePayOrderRes, error) {
-	panic("implement me")
+	order, err := h.orderService.PayOrder(
+		ctx,
+		models.OrderId(params.OrderUUID),
+		models.PaymentMethod(req.PaymentMethod),
+	)
+	if err != nil {
+		return newPayOrderInternalServerError(), nil
+	}
+
+	return &orders.PayOrderResponse{
+		TransactionUUID: uuid.UUID(order.TransactionId()),
+	}, nil
 }
