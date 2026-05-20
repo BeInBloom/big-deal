@@ -31,7 +31,7 @@ func (h *Handlers) OrderServiceCancelOrder(
 	params orders.OrderServiceCancelOrderParams,
 ) (orders.OrderServiceCancelOrderRes, error) {
 	if err := h.orderService.CancelOrder(ctx, models.OrderId(params.OrderUUID)); err != nil {
-		return newCancelOrderInternalServerError(), nil
+		return mapCancelOrderError(err), nil
 	}
 
 	return &orders.OrderServiceCancelOrderNoContent{}, nil
@@ -47,7 +47,7 @@ func (h *Handlers) OrderServiceCreateOrder(
 		toPartIds(req.PartUuids),
 	)
 	if err != nil {
-		return newCreateOrderInternalServerError(), nil
+		return mapCreateOrderError(err), nil
 	}
 
 	return &orders.CreateOrderResponse{
@@ -62,7 +62,7 @@ func (h *Handlers) OrderServiceGetOrder(
 ) (orders.OrderServiceGetOrderRes, error) {
 	order, err := h.orderService.GetOrder(ctx, models.OrderId(params.OrderUUID))
 	if err != nil {
-		return newGetOrderInternalServerError(), nil
+		return mapGetOrderError(err), nil
 	}
 
 	return toAPIOrder(order), nil
@@ -79,7 +79,7 @@ func (h *Handlers) OrderServicePayOrder(
 		models.PaymentMethod(req.PaymentMethod),
 	)
 	if err != nil {
-		return newPayOrderInternalServerError(), nil
+		return mapPayOrderError(err), nil
 	}
 
 	return &orders.PayOrderResponse{
