@@ -1,5 +1,7 @@
 package models
 
+import "slices"
+
 type (
 	Parts []Part
 )
@@ -11,6 +13,10 @@ type (
 		Price       uint
 	}
 )
+
+func (p Parts) Clone() Parts {
+	return slices.Clone(p)
+}
 
 func (p Parts) Price() uint {
 	var sum uint

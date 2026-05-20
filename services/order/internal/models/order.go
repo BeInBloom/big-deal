@@ -1,7 +1,5 @@
 package models
 
-import "slices"
-
 type (
 	CanceledOrder = CanceledOrderState
 	PaidOrder     = PaidOrderState
@@ -74,7 +72,7 @@ func newOrderData(id OrderId, userId UserId, parts Parts) orderData {
 	return orderData{
 		id:     id,
 		userId: userId,
-		parts:  slices.Clone(parts),
+		parts:  parts.Clone(),
 	}
 }
 
@@ -87,7 +85,7 @@ func (o orderData) UserId() UserId {
 }
 
 func (o orderData) Parts() Parts {
-	return slices.Clone(o.parts)
+	return o.parts.Clone()
 }
 
 func (o CanceledOrderState) Status() OrderStatus {
