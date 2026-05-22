@@ -12,14 +12,14 @@ const (
 	Canceled       OrderStatus = "CANCELLED"
 )
 
-type PaymentMethod string
+type PaymentMethod int
 
 const (
-	PaymentMethodUNKNOWN       PaymentMethod = "UNKNOWN"
-	PaymentMethodCARD          PaymentMethod = "CARD"
-	PaymentMethodSBP           PaymentMethod = "SBP"
-	PaymentMethodCREDITCARD    PaymentMethod = "CREDIT_CARD"
-	PaymentMethodINVESTORMONEY PaymentMethod = "INVESTOR_MONEY"
+	PaymentMethodUNKNOWN PaymentMethod = iota
+	PaymentMethodCARD
+	PaymentMethodSBP
+	PaymentMethodCREDITCARD
+	PaymentMethodINVESTORMONEY
 )
 
 type (

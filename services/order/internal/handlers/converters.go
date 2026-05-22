@@ -22,7 +22,7 @@ func toAPIOrder(order models.Order) *orders.Order {
 	}
 
 	if paymentMethod, ok := snapshot.PaymentMethod.Get(); ok {
-		res.PaymentMethod = orders.NewOptNilPaymentMethod(orders.PaymentMethod(paymentMethod))
+		res.PaymentMethod = orders.NewOptNilPaymentMethod(toAPIPaymentMethod(paymentMethod))
 	}
 
 	return res
@@ -50,4 +50,34 @@ func toAPIPartIds(ids []models.PartId) []uuid.UUID {
 
 func toAPIPrice(price uint) float64 {
 	return float64(price) / 100
+}
+
+func toPaymentMethod(paymentMethod orders.PaymentMethod) models.PaymentMethod {
+	switch paymentMethod {
+	case orders.PaymentMethodCARD:
+		return models.PaymentMethodCARD
+	case orders.PaymentMethodSBP:
+		return models.PaymentMethodSBP
+	case orders.PaymentMethodCREDITCARD:
+		return models.PaymentMethodCREDITCARD
+	case orders.PaymentMethodINVESTORMONEY:
+		return models.PaymentMethodINVESTORMONEY
+	default:
+		return models.PaymentMethodUNKNOWN
+	}
+}
+
+func toAPIPaymentMethod(paymentMethod models.PaymentMethod) orders.PaymentMethod {
+	switch paymentMethod {
+	case models.PaymentMethodCARD:
+		return orders.PaymentMethodCARD
+	case models.PaymentMethodSBP:
+		return orders.PaymentMethodSBP
+	case models.PaymentMethodCREDITCARD:
+		return orders.PaymentMethodCREDITCARD
+	case models.PaymentMethodINVESTORMONEY:
+		return orders.PaymentMethodINVESTORMONEY
+	default:
+		return orders.PaymentMethodUNKNOWN
+	}
 }

@@ -76,7 +76,7 @@ func (h *Handlers) OrderServicePayOrder(
 	order, err := h.orderService.PayOrder(
 		ctx,
 		models.OrderId(params.OrderUUID),
-		models.PaymentMethod(req.PaymentMethod),
+		toPaymentMethod(req.PaymentMethod),
 	)
 	if err != nil {
 		return mapPayOrderError(err), nil
