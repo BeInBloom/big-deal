@@ -5,8 +5,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/BeInBloom/big-deal/services/order/internal/builder"
@@ -86,17 +84,4 @@ func (a *App) Shutdown(ctx context.Context) error {
 	}
 
 	return err
-}
-
-func buildNotifyContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	return signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-}
-
-func buildHttpServer(handlers http.Handler) *http.Server {
-	return &http.Server{
-		Addr:              serverAddr,
-		Handler:           handlers,
-		ReadHeaderTimeout: timeout,
-	}
-
 }
