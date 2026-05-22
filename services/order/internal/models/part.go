@@ -6,13 +6,11 @@ type (
 	Parts []Part
 )
 
-type (
-	Part struct {
-		Id          PartId
-		Description string
-		Price       uint
-	}
-)
+type Part struct {
+	Id          PartId
+	Description string
+	Price       uint
+}
 
 func (p Parts) Clone() Parts {
 	return slices.Clone(p)
