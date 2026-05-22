@@ -42,7 +42,11 @@ type OrderService struct {
 	newId    func() models.OrderId
 }
 
-func New(repo OrderRepo, parts PartService, payments PaymentService) *OrderService {
+func New(
+	repo OrderRepo,
+	parts PartService,
+	payments PaymentService,
+) *OrderService {
 	return &OrderService{
 		repo:     repo,
 		parts:    parts,
@@ -53,7 +57,10 @@ func New(repo OrderRepo, parts PartService, payments PaymentService) *OrderServi
 	}
 }
 
-func (s *OrderService) CancelOrder(ctx context.Context, id models.OrderId) error {
+func (s *OrderService) CancelOrder(
+	ctx context.Context,
+	id models.OrderId,
+) error {
 	snapshot, err := s.repo.Get(ctx, id)
 	if err != nil {
 		return err
@@ -85,7 +92,10 @@ func (s *OrderService) CreateOrder(
 	return order, nil
 }
 
-func (s *OrderService) GetOrder(ctx context.Context, id models.OrderId) (models.Order, error) {
+func (s *OrderService) GetOrder(
+	ctx context.Context,
+	id models.OrderId,
+) (models.Order, error) {
 	snapshot, err := s.repo.Get(ctx, id)
 	if err != nil {
 		return nil, err
@@ -109,7 +119,8 @@ func (s *OrderService) PayOrder(
 		return models.PaidOrder{}, ErrOrderCannotBePaid
 	}
 
-	transactionId, err := s.payments.PayOrder(ctx, order.UserId(), order.Id(), method)
+	transactionId, err := s.payments.PayOrder(
+		ctx, order.UserId(), order.Id(), method)
 	if err != nil {
 		return models.PaidOrder{}, err
 	}

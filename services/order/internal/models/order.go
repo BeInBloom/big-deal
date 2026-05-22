@@ -42,7 +42,11 @@ type (
 	}
 )
 
-func NewPendingOrder(id OrderId, userId UserId, parts Parts) PendingOrderState {
+func NewPendingOrder(
+	id OrderId,
+	userId UserId,
+	parts Parts,
+) PendingOrderState {
 	return PendingOrderState{
 		orderData: newOrderData(id, userId, parts),
 	}
@@ -62,13 +66,21 @@ func NewPaidOrder(
 	}
 }
 
-func NewCanceledOrder(id OrderId, userId UserId, parts Parts) CanceledOrderState {
+func NewCanceledOrder(
+	id OrderId,
+	userId UserId,
+	parts Parts,
+) CanceledOrderState {
 	return CanceledOrderState{
 		orderData: newOrderData(id, userId, parts),
 	}
 }
 
-func newOrderData(id OrderId, userId UserId, parts Parts) orderData {
+func newOrderData(
+	id OrderId,
+	userId UserId,
+	parts Parts,
+) orderData {
 	return orderData{
 		id:     id,
 		userId: userId,
@@ -128,7 +140,10 @@ func (o PendingOrderState) Status() OrderStatus {
 	return PendingPayment
 }
 
-func (o PendingOrderState) Pay(method PaymentMethod, transactionId TransactionId) PaidOrderState {
+func (o PendingOrderState) Pay(
+	method PaymentMethod,
+	transactionId TransactionId,
+) PaidOrderState {
 	return NewPaidOrder(o.Id(), o.UserId(), o.Parts(), method, transactionId)
 }
 

@@ -19,7 +19,10 @@ func NewMapRepo() *MapRepo {
 	}
 }
 
-func (r *MapRepo) Get(_ context.Context, id models.OrderId) (models.OrderSnapshot, error) {
+func (r *MapRepo) Get(
+	_ context.Context,
+	id models.OrderId,
+) (models.OrderSnapshot, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -31,7 +34,10 @@ func (r *MapRepo) Get(_ context.Context, id models.OrderId) (models.OrderSnapsho
 	return cloneOrderSnapshot(order), nil
 }
 
-func (r *MapRepo) Save(_ context.Context, order models.OrderSnapshot) error {
+func (r *MapRepo) Save(
+	_ context.Context,
+	order models.OrderSnapshot,
+) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.orders[order.Id] = cloneOrderSnapshot(order)

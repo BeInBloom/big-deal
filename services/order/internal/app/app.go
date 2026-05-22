@@ -63,7 +63,9 @@ func (a *App) Run(ctx context.Context) error {
 
 		log.Println("order service stopping")
 
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		shutdownCtx, cancel := context.WithTimeout(
+			context.Background(), shutdownTimeout,
+		)
 		defer cancel()
 
 		err := a.server.Shutdown(shutdownCtx)
