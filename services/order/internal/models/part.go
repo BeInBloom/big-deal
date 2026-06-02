@@ -2,9 +2,7 @@ package models
 
 import "slices"
 
-type (
-	Parts []Part
-)
+type Parts []Part
 
 type Part struct {
 	Id          PartId
