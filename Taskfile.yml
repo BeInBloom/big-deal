@@ -38,7 +38,44 @@ vars:
   MODULES: assembly inventory order payment platform iam notification
 
 tasks:
+  rust:check:
+    desc: "Проверяет Rust workspace"
+    cmds:
+      - cargo check --workspace
+
+  rust:fmt:
+    desc: "Форматирует Rust-код"
+    cmds:
+      - cargo fmt
+
+  rust:fmt:check:
+    desc: "Проверяет форматирование Rust-кода"
+    cmds:
+      - cargo fmt --check
+
+  rust:clippy:
+    desc: "Запускает Clippy для Rust workspace"
+    cmds:
+      - cargo clippy --workspace -- -D warnings
+
+  format:
+    desc: "Форматирует код проекта"
+    cmds:
+      - task: go:format
+      - task: rust:fmt
+
+  lint:
+    desc: "Запускает линтеры проекта"
+    cmds:
+      - task: go:lint
+      - task: rust:clippy
+
   install-formatters:
+    desc: "Устанавливает Go-форматтеры"
+    cmds:
+      - task: go:install-formatters
+
+  go:install-formatters:
     desc: "Устанавливает форматтеры gci и gofumpt в ./bin"
     summary: |
       Эта задача проверяет наличие инструментов форматирования кода gofumpt и gci в директории bin.
@@ -61,8 +98,8 @@ tasks:
       - test -x {{.GOFUMPT}}
       - test -x {{.GCI}}
 
-  format:
-    desc: "Форматирует весь проект gofumpt + gci, исключая mocks"
+  go:format:
+    desc: "Форматирует Go-код gofumpt + gci, исключая mocks"
     summary: |
       Форматирует все Go-файлы проекта с использованием gofumpt для стандартизации кода
       и gci для сортировки импортов, исключая файлы в директориях mocks.
@@ -70,7 +107,7 @@ tasks:
       Использует инструменты:
         - gofumpt: для стандартизации форматирования
         - gci: для сортировки импортов по стандартным группам
-    deps: [install-formatters]
+    deps: [go:install-formatters]
     cmds:
       - |
         echo "🧼 Форматируем через gofumpt ..."
@@ -92,6 +129,11 @@ tasks:
         done
 
   install-golangci-lint:
+    desc: "Устанавливает golangci-lint"
+    cmds:
+      - task: go:install-golangci-lint
+
+  go:install-golangci-lint:
     desc: "Устанавливает golangci-lint в каталог bin"
     summary: |
       Проверяет наличие golangci-lint в директории bin.
@@ -108,17 +150,16 @@ tasks:
     status:
       - test -x {{.GOLANGCI_LINT}}
 
-  lint:
-    desc: "Запускает golangci-lint для всех модулей"
+  go:lint:
+    desc: "Запускает golangci-lint для Go-модулей"
     summary: |
-      Запускает линтер golangci-lint для всех модулей проекта.
+      Запускает линтер golangci-lint для Go-модулей проекта.
       Линтер проверяет код на соответствие стандартам качества и лучшим практикам.
       Проверка включает проверку безопасности через gosec (встроенный в golangci-lint).
 
       Зависимости:
-        - install-golangci-lint: автоматически устанавливает линтер
-        - format: форматирует код перед проверкой
-    deps: [install-golangci-lint]
+        - go:install-golangci-lint: автоматически устанавливает линтер
+    deps: [go:install-golangci-lint]
     vars:
       MODULES: "{{.MODULES}}"
       GOLANGCI_LINT: "{{.GOLANGCI_LINT}}"
