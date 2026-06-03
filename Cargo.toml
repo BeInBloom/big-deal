@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["services/payment"]
+members = ["services/inventory", "services/payment"]
 
 [workspace.package]
 edition = "2024"
@@ -13,3 +13,4 @@ tonic = "0.12"
 prost = "0.13"
 uuid = { version = "1", features = ["v4"] }
 tonic-build = "0.12"
+prost-types = "0.13"
