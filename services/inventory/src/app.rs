@@ -4,21 +4,24 @@ use tonic::transport::Server;
 
 use crate::{
     grpc::inventory::InventoryGrpcHandler,
-    proto::inventory_v1::inventory_service_server::InventoryServiceServer,
+    proto::inventory_v1::inventory_service_server::{InventoryService, InventoryServiceServer},
 };
 
 const ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 50052));
 
-pub(crate) struct App {
+pub(crate) struct App<T> {
     addr: SocketAddr,
-    inventory: InventoryGrpcHandler,
+    inventory: T,
 }
 
-impl App {
-    pub(crate) fn new() -> Self {
+impl<T> App<T>
+where
+    T: InventoryService,
+{
+    pub(crate) fn new(service: T) -> Self {
         Self {
             addr: ADDR,
-            inventory: InventoryGrpcHandler::new(),
+            inventory: service,
         }
     }
 

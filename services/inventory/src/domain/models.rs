@@ -8,7 +8,25 @@ use std::{
 use anyhow::Result;
 use uuid::Uuid;
 
-use crate::domain::errors::{InventoryError, InventoryRequestError, PartIdError};
+use crate::domain::errors::{MeasurementError, PartIdError};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct Name(String);
+
+impl From<String> for Name {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub(crate) struct Names(HashSet<Name>);
+
+impl From<Vec<String>> for Names {
+    fn from(values: Vec<String>) -> Self {
+        Self(values.into_iter().map(Name::from).collect())
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct PartId(Uuid);
@@ -31,7 +49,7 @@ impl FromStr for PartId {
 pub(crate) struct PartIds(HashSet<PartId>);
 
 impl TryFrom<Vec<String>> for PartIds {
-    type Error = InventoryRequestError;
+    type Error = PartIdError;
 
     fn try_from(value: Vec<String>) -> Result<Self, Self::Error> {
         Ok(Self(
@@ -109,11 +127,11 @@ impl FromIterator<PartCategory> for PartCategories {
 pub(crate) struct PositiveMeasurement(f64);
 
 impl TryFrom<f64> for PositiveMeasurement {
-    type Error = InventoryError;
+    type Error = MeasurementError;
 
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         if !value.is_finite() || value <= 0.0 {
-            return Err(InventoryError::InvalidMeasurement);
+            return Err(MeasurementError::Invalid);
         }
 
         Ok(Self(value))
@@ -172,7 +190,7 @@ pub(crate) struct GetPartQuery {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ListPartsQuery {
     pub(crate) ids: PartIds,
-    pub(crate) names: Vec<String>,
+    pub(crate) names: Names,
     pub(crate) categories: PartCategories,
     pub(crate) manufacturer_countries: CountryCodes,
     pub(crate) tags: Tags,

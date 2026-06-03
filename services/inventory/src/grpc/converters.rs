@@ -2,7 +2,8 @@ use crate::{
     domain::{
         errors::InventoryRequestError,
         models::{
-            CountryCodes, GetPartQuery, ListPartsQuery, PartCategories, PartCategory, PartIds, Tags,
+            CountryCodes, GetPartQuery, ListPartsQuery, Names, PartCategories, PartCategory,
+            PartIds, Tags,
         },
     },
     proto::inventory_v1::{self, GetPartRequest, ListPartsRequest},
@@ -25,7 +26,7 @@ impl TryFrom<ListPartsRequest> for ListPartsQuery {
         let Some(filter) = value.filter else {
             return Ok(Self {
                 ids: PartIds::default(),
-                names: Vec::new(),
+                names: Names::default(),
                 categories: PartCategories::default(),
                 manufacturer_countries: CountryCodes::default(),
                 tags: Tags::default(),
@@ -34,7 +35,7 @@ impl TryFrom<ListPartsRequest> for ListPartsQuery {
 
         Ok(Self {
             ids: filter.uuids.try_into()?,
-            names: filter.names,
+            names: filter.names.into(),
             categories: filter.categories.try_into()?,
             manufacturer_countries: filter.manufacturer_countries.into(),
             tags: filter.tags.into(),
@@ -46,10 +47,9 @@ impl TryFrom<i32> for PartCategory {
     type Error = InventoryRequestError;
 
     fn try_from(value: i32) -> Result<Self, Self::Error> {
-        let category = inventory_v1::PartCategory::try_from(value)
-            .map_err(|_| InventoryRequestError::InvalidPartCategory)?;
-
-        category.try_into()
+        inventory_v1::PartCategory::try_from(value)
+            .map_err(|_| InventoryRequestError::InvalidPartCategory)?
+            .try_into()
     }
 }
 
