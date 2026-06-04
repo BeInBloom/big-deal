@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use std::{
+    borrow::Borrow,
     collections::{HashMap, HashSet},
     str::FromStr,
     time::SystemTime,
@@ -13,6 +14,12 @@ use crate::domain::errors::{MeasurementError, PartIdError};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Name(String);
 
+impl Borrow<str> for Name {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
 impl From<String> for Name {
     fn from(value: String) -> Self {
         Self(value)
@@ -21,6 +28,12 @@ impl From<String> for Name {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct Names(HashSet<Name>);
+
+impl Names {
+    pub(crate) fn matches(&self, name: &str) -> bool {
+        self.0.is_empty() || self.0.contains(name)
+    }
+}
 
 impl From<Vec<String>> for Names {
     fn from(values: Vec<String>) -> Self {
@@ -45,6 +58,12 @@ impl FromStr for PartId {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(crate) struct PartIds(HashSet<PartId>);
+
+impl PartIds {
+    pub(crate) fn matches(&self, id: &PartId) -> bool {
+        self.0.is_empty() || self.0.contains(id)
+    }
+}
 
 impl TryFrom<Vec<String>> for PartIds {
     type Error = PartIdError;
@@ -71,6 +90,12 @@ impl From<String> for Tag {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct Tags(HashSet<Tag>);
 
+impl Tags {
+    pub(crate) fn matches(&self, tags: &Tags) -> bool {
+        self.0.is_empty() || self.0.is_subset(&tags.0)
+    }
+}
+
 impl From<Vec<String>> for Tags {
     fn from(values: Vec<String>) -> Self {
         Self(values.into_iter().map(Tag::from).collect())
@@ -95,6 +120,12 @@ impl From<String> for CountryCode {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(crate) struct CountryCodes(HashSet<CountryCode>);
 
+impl CountryCodes {
+    pub(crate) fn matches(&self, country: &CountryCode) -> bool {
+        self.0.is_empty() || self.0.contains(country)
+    }
+}
+
 impl From<Vec<String>> for CountryCodes {
     fn from(values: Vec<String>) -> Self {
         Self(values.into_iter().map(CountryCode::from).collect())
@@ -111,6 +142,12 @@ pub(crate) enum PartCategory {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(crate) struct PartCategories(HashSet<PartCategory>);
+
+impl PartCategories {
+    pub(crate) fn matches(&self, category: &PartCategory) -> bool {
+        self.0.is_empty() || self.0.contains(category)
+    }
+}
 
 impl FromIterator<PartCategory> for PartCategories {
     fn from_iter<T>(iter: T) -> Self
@@ -192,4 +229,16 @@ pub(crate) struct ListPartsQuery {
     pub(crate) categories: PartCategories,
     pub(crate) manufacturer_countries: CountryCodes,
     pub(crate) tags: Tags,
+}
+
+impl ListPartsQuery {
+    pub(crate) fn matches(&self, part: &Part) -> bool {
+        self.ids.matches(&part.id)
+            && self.names.matches(&part.name)
+            && self.categories.matches(&part.category)
+            && self
+                .manufacturer_countries
+                .matches(&part.manufacturer.country)
+            && self.tags.matches(&part.tags)
+    }
 }

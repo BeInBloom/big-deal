@@ -44,11 +44,14 @@ pub(crate) enum MeasurementError {
     Invalid,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Error)]
 pub(crate) enum InventoryRequestError {
     #[error(transparent)]
     PartId(#[from] PartIdError),
 
     #[error("part category is invalid")]
     InvalidPartCategory,
+
+    #[error(transparent)]
+    UnknownEnumValue(#[from] prost::UnknownEnumValue),
 }

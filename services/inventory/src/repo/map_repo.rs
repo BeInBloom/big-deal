@@ -21,12 +21,17 @@ impl MapPartRepo {
 
 impl PartRepo for MapPartRepo {
     async fn get(&self, id: PartId) -> Result<Option<Part>, PartRepoError> {
-        Ok(self.map.blocking_read().get(&id).cloned())
+        Ok(self.map.read().await.get(&id).cloned())
     }
 
     async fn list(&self, query: ListPartsQuery) -> Result<Vec<Part>, PartRepoError> {
-        // Ok(self.map.blocking_read().into_values()
-        //     .filter(predicate))
-        todo!()
+        Ok(self
+            .map
+            .read()
+            .await
+            .values()
+            .filter(|part| query.matches(part))
+            .cloned()
+            .collect())
     }
 }

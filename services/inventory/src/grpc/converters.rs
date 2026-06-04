@@ -38,9 +38,7 @@ impl TryFrom<i32> for PartCategory {
     type Error = InventoryRequestError;
 
     fn try_from(value: i32) -> Result<Self, Self::Error> {
-        inventory_v1::PartCategory::try_from(value)
-            .map_err(|_| InventoryRequestError::InvalidPartCategory)?
-            .try_into()
+        inventory_v1::PartCategory::try_from(value)?.try_into()
     }
 }
 
