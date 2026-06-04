@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::domain::{
-    errors::PartRepoError,
+    errors::InventoryUseCaseError,
     models::{GetPartQuery, ListPartsQuery, Part},
     traits::{InventoryUseCases, PartRepo},
 };
@@ -23,11 +23,11 @@ impl<R> InventoryUseCases for InventoryManager<R>
 where
     R: PartRepo,
 {
-    async fn get_part(&self, query: GetPartQuery) -> Result<Option<Part>, PartRepoError> {
-        self.part_repo.get(query.id).await
+    async fn get_part(&self, query: GetPartQuery) -> Result<Option<Part>, InventoryUseCaseError> {
+        Ok(self.part_repo.get(query.id).await?)
     }
 
-    async fn list_parts(&self, query: ListPartsQuery) -> Result<Vec<Part>, PartRepoError> {
-        self.part_repo.list(query).await
+    async fn list_parts(&self, query: ListPartsQuery) -> Result<Vec<Part>, InventoryUseCaseError> {
+        Ok(self.part_repo.list(query).await?)
     }
 }

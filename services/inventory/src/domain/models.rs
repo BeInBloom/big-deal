@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use std::{
     borrow::Borrow,
     collections::{HashMap, HashSet},
@@ -6,7 +5,6 @@ use std::{
     time::SystemTime,
 };
 
-use anyhow::Result;
 use uuid::Uuid;
 
 use crate::domain::errors::{MeasurementError, PartIdError};
@@ -26,6 +24,12 @@ impl From<String> for Name {
     }
 }
 
+impl From<Name> for String {
+    fn from(value: Name) -> Self {
+        value.0
+    }
+}
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct Names(HashSet<Name>);
 
@@ -41,6 +45,12 @@ impl From<Vec<String>> for Names {
     }
 }
 
+impl From<Names> for Vec<String> {
+    fn from(value: Names) -> Self {
+        value.0.into_iter().map(String::from).collect()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct PartId(Uuid);
 
@@ -53,6 +63,12 @@ impl FromStr for PartId {
         }
 
         Ok(Self(s.parse().map_err(|_| PartIdError::Invalid)?))
+    }
+}
+
+impl From<PartId> for String {
+    fn from(value: PartId) -> Self {
+        value.0.to_string()
     }
 }
 
@@ -78,12 +94,24 @@ impl TryFrom<Vec<String>> for PartIds {
     }
 }
 
+impl From<PartIds> for Vec<String> {
+    fn from(value: PartIds) -> Self {
+        value.0.into_iter().map(String::from).collect()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Tag(String);
 
 impl From<String> for Tag {
     fn from(value: String) -> Self {
         Self(value)
+    }
+}
+
+impl From<Tag> for String {
+    fn from(value: Tag) -> Self {
+        value.0
     }
 }
 
@@ -102,11 +130,35 @@ impl From<Vec<String>> for Tags {
     }
 }
 
+impl From<Tags> for Vec<String> {
+    fn from(value: Tags) -> Self {
+        value.0.into_iter().map(String::from).collect()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct MoneyCents(u64);
 
+impl From<MoneyCents> for f64 {
+    fn from(value: MoneyCents) -> Self {
+        value.0 as f64 / 100.0
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct StockQuantity(u64);
+
+impl From<StockQuantity> for u64 {
+    fn from(value: StockQuantity) -> Self {
+        value.0
+    }
+}
+
+impl From<StockQuantity> for i64 {
+    fn from(value: StockQuantity) -> Self {
+        value.0 as i64
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct CountryCode(String);
@@ -114,6 +166,12 @@ pub(crate) struct CountryCode(String);
 impl From<String> for CountryCode {
     fn from(value: String) -> Self {
         Self(value)
+    }
+}
+
+impl From<CountryCode> for String {
+    fn from(value: CountryCode) -> Self {
+        value.0
     }
 }
 
@@ -129,6 +187,12 @@ impl CountryCodes {
 impl From<Vec<String>> for CountryCodes {
     fn from(values: Vec<String>) -> Self {
         Self(values.into_iter().map(CountryCode::from).collect())
+    }
+}
+
+impl From<CountryCodes> for Vec<String> {
+    fn from(value: CountryCodes) -> Self {
+        value.0.into_iter().map(String::from).collect()
     }
 }
 
@@ -194,6 +258,7 @@ pub(crate) struct Manufacturer {
     pub(crate) website: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum MetadataValue {
     String(String),

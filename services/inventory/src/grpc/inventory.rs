@@ -1,10 +1,12 @@
-use anyhow::Result;
 use tonic::{Request, Response, Status};
 
 use crate::{
-    domain::traits::InventoryUseCases,
+    domain::{
+        errors::{InventoryRequestError, InventoryUseCaseError},
+        traits::InventoryUseCases,
+    },
     proto::inventory_v1::{
-        GetPartRequest, GetPartResponse, ListPartsRequest, ListPartsResponse,
+        GetPartRequest, GetPartResponse, InventoryPart, ListPartsRequest, ListPartsResponse,
         inventory_service_server::InventoryService,
     },
 };
@@ -34,13 +36,45 @@ where
         &self,
         request: Request<GetPartRequest>,
     ) -> Result<Response<GetPartResponse>, Status> {
-        todo!()
+        let query = request.into_inner().try_into().map_err(map_request_error)?;
+
+        let part = self
+            .inventory_manager
+            .get_part(query)
+            .await
+            .map_err(map_use_case_error)?
+            .ok_or_else(|| Status::not_found("part not found"))?;
+
+        Ok(Response::new(GetPartResponse {
+            part: Some(part.into()),
+        }))
     }
 
     async fn list_parts(
         &self,
         request: Request<ListPartsRequest>,
     ) -> Result<Response<ListPartsResponse>, Status> {
-        todo!()
+        let query = request.into_inner().try_into().map_err(map_request_error)?;
+
+        let parts = self
+            .inventory_manager
+            .list_parts(query)
+            .await
+            .map_err(map_use_case_error)?
+            .into_iter()
+            .map(InventoryPart::from)
+            .collect();
+
+        Ok(Response::new(ListPartsResponse { parts }))
+    }
+}
+
+fn map_request_error(error: InventoryRequestError) -> Status {
+    Status::invalid_argument(error.to_string())
+}
+
+fn map_use_case_error(error: InventoryUseCaseError) -> Status {
+    match error {
+        InventoryUseCaseError::Storage(_) => Status::internal("inventory storage failed"),
     }
 }

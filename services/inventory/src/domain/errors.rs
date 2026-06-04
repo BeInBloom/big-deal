@@ -55,3 +55,9 @@ pub(crate) enum InventoryRequestError {
     #[error(transparent)]
     UnknownEnumValue(#[from] prost::UnknownEnumValue),
 }
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum InventoryUseCaseError {
+    #[error("inventory storage failed: {0}")]
+    Storage(#[from] PartRepoError),
+}

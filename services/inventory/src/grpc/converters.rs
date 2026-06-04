@@ -1,9 +1,17 @@
+use std::collections::HashMap;
+
 use crate::{
     domain::{
         errors::InventoryRequestError,
-        models::{GetPartQuery, ListPartsQuery, PartCategories, PartCategory},
+        models::{
+            Dimensions, GetPartQuery, ListPartsQuery, Manufacturer, MetadataValue, Part,
+            PartCategories, PartCategory,
+        },
     },
-    proto::inventory_v1::{self, GetPartRequest, ListPartsRequest},
+    proto::inventory_v1::{
+        self, GetPartRequest, InventoryDimensions, InventoryMetadataValue, InventoryPart,
+        ListPartsRequest, inventory_metadata_value::Kind,
+    },
 };
 
 impl TryFrom<GetPartRequest> for GetPartQuery {
@@ -64,4 +72,77 @@ impl TryFrom<Vec<i32>> for PartCategories {
     fn try_from(values: Vec<i32>) -> Result<Self, Self::Error> {
         values.into_iter().map(PartCategory::try_from).collect()
     }
+}
+
+impl From<PartCategory> for inventory_v1::PartCategory {
+    fn from(value: PartCategory) -> Self {
+        match value {
+            PartCategory::Engine => Self::Engine,
+            PartCategory::Fuel => Self::Fuel,
+            PartCategory::Porthole => Self::Porthole,
+            PartCategory::Wing => Self::Wing,
+        }
+    }
+}
+
+impl From<Part> for InventoryPart {
+    fn from(part: Part) -> Self {
+        Self {
+            uuid: part.id.into(),
+            name: part.name,
+            description: String::new(),
+            price: part.price.into(),
+            stock_quantity: part.stock_quantity.into(),
+            category: inventory_v1::PartCategory::from(part.category) as i32,
+            dimensions: Some(part.dimensions.into()),
+            manufacturer: Some(part.manufacturer.into()),
+            tags: part.tags.into(),
+            metadata: convert_metadata(part.metadata),
+            created_at: Some(part.created_at.into()),
+            updated_at: Some(part.updated_at.into()),
+        }
+    }
+}
+
+impl From<Dimensions> for InventoryDimensions {
+    fn from(value: Dimensions) -> Self {
+        Self {
+            length: value.length.into(),
+            width: value.width.into(),
+            height: value.height.into(),
+            weight: value.weight.into(),
+        }
+    }
+}
+
+impl From<Manufacturer> for inventory_v1::InventoryManufacturer {
+    fn from(value: Manufacturer) -> Self {
+        Self {
+            name: value.name,
+            country: value.country.into(),
+            website: value.website,
+        }
+    }
+}
+
+impl From<MetadataValue> for InventoryMetadataValue {
+    fn from(value: MetadataValue) -> Self {
+        let kind = match value {
+            MetadataValue::String(value) => Kind::StringValue(value),
+            MetadataValue::Int64(value) => Kind::Int64Value(value),
+            MetadataValue::Double(value) => Kind::DoubleValue(value),
+            MetadataValue::Bool(value) => Kind::BoolValue(value),
+        };
+
+        Self { kind: Some(kind) }
+    }
+}
+
+fn convert_metadata(
+    metadata: HashMap<String, MetadataValue>,
+) -> HashMap<String, InventoryMetadataValue> {
+    metadata
+        .into_iter()
+        .map(|(key, value)| (key, value.into()))
+        .collect()
 }

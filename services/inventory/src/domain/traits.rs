@@ -1,15 +1,26 @@
 #![allow(dead_code)]
 use crate::domain::{
-    errors::PartRepoError,
+    errors::{InventoryUseCaseError, PartRepoError},
     models::{GetPartQuery, ListPartsQuery, Part, PartId},
 };
 
 pub(crate) trait PartRepo: Send + Sync + 'static {
-    async fn get(&self, id: PartId) -> Result<Option<Part>, PartRepoError>;
-    async fn list(&self, query: ListPartsQuery) -> Result<Vec<Part>, PartRepoError>;
+    fn get(&self, id: PartId) -> impl Future<Output = Result<Option<Part>, PartRepoError>> + Send;
+
+    fn list(
+        &self,
+        query: ListPartsQuery,
+    ) -> impl Future<Output = Result<Vec<Part>, PartRepoError>> + Send;
 }
 
 pub(crate) trait InventoryUseCases: Send + Sync + 'static {
-    async fn get_part(&self, query: GetPartQuery) -> Result<Option<Part>, PartRepoError>;
-    async fn list_parts(&self, query: ListPartsQuery) -> Result<Vec<Part>, PartRepoError>;
+    fn get_part(
+        &self,
+        query: GetPartQuery,
+    ) -> impl Future<Output = Result<Option<Part>, InventoryUseCaseError>> + Send;
+
+    fn list_parts(
+        &self,
+        query: ListPartsQuery,
+    ) -> impl Future<Output = Result<Vec<Part>, InventoryUseCaseError>> + Send;
 }
