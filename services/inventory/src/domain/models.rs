@@ -62,7 +62,7 @@ impl FromStr for PartId {
             return Err(PartIdError::Missing);
         }
 
-        Ok(Self(s.parse().map_err(|_| PartIdError::Invalid)?))
+        Ok(Self(s.parse()?))
     }
 }
 
@@ -139,9 +139,9 @@ impl From<Tags> for Vec<String> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct MoneyCents(u64);
 
-impl From<MoneyCents> for f64 {
+impl From<MoneyCents> for u64 {
     fn from(value: MoneyCents) -> Self {
-        value.0 as f64 / 100.0
+        value.0
     }
 }
 
@@ -151,12 +151,6 @@ pub(crate) struct StockQuantity(u64);
 impl From<StockQuantity> for u64 {
     fn from(value: StockQuantity) -> Self {
         value.0
-    }
-}
-
-impl From<StockQuantity> for i64 {
-    fn from(value: StockQuantity) -> Self {
-        value.0 as i64
     }
 }
 

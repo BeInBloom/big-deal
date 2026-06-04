@@ -10,13 +10,12 @@ impl TryFrom<PayOrderRequest> for PayOrderCommand {
     type Error = PaymentError;
 
     fn try_from(value: PayOrderRequest) -> Result<Self, Self::Error> {
-        let payment_method = payment_v1::PaymentMethod::try_from(value.payment_method)
-            .map_err(|_| PaymentError::InvalidPaymentMethod)?;
+        let payment_method = payment_v1::PaymentMethod::try_from(value.payment_method)?;
 
         Ok(Self {
             user_id: value.user_uuid.parse()?,
             order_id: value.order_uuid.parse()?,
-            payment_method: PaymentMethod::try_from(payment_method)?,
+            payment_method: payment_method.try_into()?,
         })
     }
 }

@@ -36,7 +36,7 @@ impl TryFrom<&str> for UserId {
             return Err(PaymentError::MissingUserId);
         }
 
-        let uuid = Uuid::parse_str(value).map_err(|_| PaymentError::InvalidUserId)?;
+        let uuid = value.parse()?;
 
         Ok(Self(uuid))
     }
@@ -67,7 +67,7 @@ impl TryFrom<&str> for OrderId {
             return Err(PaymentError::MissingOrderId);
         }
 
-        let uuid = Uuid::parse_str(value).map_err(|_| PaymentError::InvalidOrderId)?;
+        let uuid = value.parse()?;
 
         Ok(Self(uuid))
     }

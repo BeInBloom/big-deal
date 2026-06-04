@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crate::domain::{
     errors::{InventoryUseCaseError, PartRepoError},
     models::{GetPartQuery, ListPartsQuery, Part, PartId},

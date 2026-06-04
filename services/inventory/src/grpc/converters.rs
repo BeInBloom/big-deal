@@ -1,13 +1,11 @@
 use std::collections::HashMap;
 
 use crate::{
-    domain::{
-        errors::InventoryRequestError,
-        models::{
-            Dimensions, GetPartQuery, ListPartsQuery, Manufacturer, MetadataValue, Part,
-            PartCategories, PartCategory,
-        },
+    domain::models::{
+        Dimensions, GetPartQuery, ListPartsQuery, Manufacturer, MetadataValue, MoneyCents, Part,
+        PartCategories, PartCategory, StockQuantity,
     },
+    grpc::error::InventoryRequestError,
     proto::inventory_v1::{
         self, GetPartRequest, InventoryDimensions, InventoryMetadataValue, InventoryPart,
         ListPartsRequest, inventory_metadata_value::Kind,
@@ -91,8 +89,8 @@ impl From<Part> for InventoryPart {
             uuid: part.id.into(),
             name: part.name,
             description: String::new(),
-            price: part.price.into(),
-            stock_quantity: part.stock_quantity.into(),
+            price: money_cents_to_proto(part.price),
+            stock_quantity: stock_quantity_to_proto(part.stock_quantity),
             category: inventory_v1::PartCategory::from(part.category) as i32,
             dimensions: Some(part.dimensions.into()),
             manufacturer: Some(part.manufacturer.into()),
@@ -145,4 +143,12 @@ fn convert_metadata(
         .into_iter()
         .map(|(key, value)| (key, value.into()))
         .collect()
+}
+
+fn money_cents_to_proto(value: MoneyCents) -> f64 {
+    u64::from(value) as f64 / 100.0
+}
+
+fn stock_quantity_to_proto(value: StockQuantity) -> i64 {
+    u64::from(value) as i64
 }

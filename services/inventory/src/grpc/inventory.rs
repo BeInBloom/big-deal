@@ -1,10 +1,8 @@
 use tonic::{Request, Response, Status};
 
 use crate::{
-    domain::{
-        errors::{InventoryRequestError, InventoryUseCaseError},
-        traits::InventoryUseCases,
-    },
+    domain::{errors::InventoryUseCaseError, traits::InventoryUseCases},
+    grpc::error::InventoryRequestError,
     proto::inventory_v1::{
         GetPartRequest, GetPartResponse, InventoryPart, ListPartsRequest, ListPartsResponse,
         inventory_service_server::InventoryService,

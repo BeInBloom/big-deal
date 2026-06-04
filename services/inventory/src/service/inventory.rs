@@ -1,5 +1,3 @@
-use anyhow::Result;
-
 use crate::domain::{
     errors::InventoryUseCaseError,
     models::{GetPartQuery, ListPartsQuery, Part},

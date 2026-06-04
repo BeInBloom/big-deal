@@ -1,3 +1,4 @@
+use prost::UnknownEnumValue;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -11,12 +12,12 @@ pub(crate) enum PaymentError {
     #[error("order_uuid is required")]
     MissingOrderId,
 
-    #[error("order_uuid is invalid")]
-    InvalidOrderId,
+    #[error("order_uuid is invalid: {0}")]
+    InvalidOrderId(#[from] uuid::Error),
 
     #[error("payment_method is required")]
     MissingPaymentMethod,
 
-    #[error("payment_method is invalid")]
-    InvalidPaymentMethod,
+    #[error("payment_method is invalid: {0}")]
+    InvalidPaymentMethod(#[from] UnknownEnumValue),
 }
