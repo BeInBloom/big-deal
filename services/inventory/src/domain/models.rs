@@ -39,9 +39,7 @@ impl FromStr for PartId {
             return Err(PartIdError::Missing);
         }
 
-        let uuid = s.parse().map_err(|_| PartIdError::Invalid)?;
-
-        Ok(Self(uuid))
+        Ok(Self(s.parse().map_err(|_| PartIdError::Invalid)?))
     }
 }
 
@@ -187,7 +185,7 @@ pub(crate) struct GetPartQuery {
     pub(crate) id: PartId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct ListPartsQuery {
     pub(crate) ids: PartIds,
     pub(crate) names: Names,

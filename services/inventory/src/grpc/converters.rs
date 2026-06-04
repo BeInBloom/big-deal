@@ -1,10 +1,7 @@
 use crate::{
     domain::{
         errors::InventoryRequestError,
-        models::{
-            CountryCodes, GetPartQuery, ListPartsQuery, Names, PartCategories, PartCategory,
-            PartIds, Tags,
-        },
+        models::{GetPartQuery, ListPartsQuery, PartCategories, PartCategory},
     },
     proto::inventory_v1::{self, GetPartRequest, ListPartsRequest},
 };
@@ -24,13 +21,7 @@ impl TryFrom<ListPartsRequest> for ListPartsQuery {
 
     fn try_from(value: ListPartsRequest) -> Result<Self, Self::Error> {
         let Some(filter) = value.filter else {
-            return Ok(Self {
-                ids: PartIds::default(),
-                names: Names::default(),
-                categories: PartCategories::default(),
-                manufacturer_countries: CountryCodes::default(),
-                tags: Tags::default(),
-            });
+            return Ok(Self::default());
         };
 
         Ok(Self {

@@ -2,9 +2,8 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 use tonic::transport::Server;
 
-use crate::{
-    grpc::inventory::InventoryGrpcHandler,
-    proto::inventory_v1::inventory_service_server::{InventoryService, InventoryServiceServer},
+use crate::proto::inventory_v1::inventory_service_server::{
+    InventoryService, InventoryServiceServer,
 };
 
 const ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 50052));
