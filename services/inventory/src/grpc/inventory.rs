@@ -1,7 +1,11 @@
 use tonic::{Request, Response, Status};
 
 use crate::{
-    domain::{errors::InventoryUseCaseError, traits::InventoryUseCases},
+    domain::{
+        errors::InventoryUseCaseError,
+        models::{GetPartQuery, ListPartsQuery, Part},
+        traits::InventoryUseCases,
+    },
     grpc::error::InventoryRequestError,
     proto::inventory_v1::{
         GetPartRequest, GetPartResponse, InventoryPart, ListPartsRequest, ListPartsResponse,
@@ -23,6 +27,27 @@ where
     pub(crate) fn new(inventory_manager: M) -> Self {
         Self { inventory_manager }
     }
+
+    async fn get_part_or_not_found(&self, query: GetPartQuery) -> Result<InventoryPart, Status> {
+        Ok(self
+            .inventory_manager
+            .get_part(query)
+            .await
+            .map_err(map_use_case_error)?
+            .ok_or_else(|| Status::not_found("part not found"))?
+            .into())
+    }
+
+    async fn get_list_parts(&self, query: ListPartsQuery) -> Result<Vec<InventoryPart>, Status> {
+        Ok(self
+            .inventory_manager
+            .list_parts(query)
+            .await
+            .map_err(map_use_case_error)?
+            .into_iter()
+            .map(InventoryPart::from)
+            .collect())
+    }
 }
 
 #[tonic::async_trait]
@@ -35,17 +60,8 @@ where
         request: Request<GetPartRequest>,
     ) -> Result<Response<GetPartResponse>, Status> {
         let query = request.into_inner().try_into().map_err(map_request_error)?;
-
-        let part = self
-            .inventory_manager
-            .get_part(query)
-            .await
-            .map_err(map_use_case_error)?
-            .ok_or_else(|| Status::not_found("part not found"))?;
-
-        Ok(Response::new(GetPartResponse {
-            part: Some(part.into()),
-        }))
+        let part = self.get_part_or_not_found(query).await?;
+        Ok(Response::new(GetPartResponse { part: Some(part) }))
     }
 
     async fn list_parts(
@@ -53,16 +69,7 @@ where
         request: Request<ListPartsRequest>,
     ) -> Result<Response<ListPartsResponse>, Status> {
         let query = request.into_inner().try_into().map_err(map_request_error)?;
-
-        let parts = self
-            .inventory_manager
-            .list_parts(query)
-            .await
-            .map_err(map_use_case_error)?
-            .into_iter()
-            .map(InventoryPart::from)
-            .collect();
-
+        let parts = self.get_list_parts(query).await?;
         Ok(Response::new(ListPartsResponse { parts }))
     }
 }
