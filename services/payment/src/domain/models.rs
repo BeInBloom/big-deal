@@ -2,7 +2,7 @@ use std::{fmt::Display, str::FromStr};
 
 use uuid::Uuid;
 
-use crate::domain::error::PaymentError;
+use crate::domain::error::{OrderIdError, UserIdError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct TransactionId(Uuid);
@@ -29,11 +29,11 @@ impl UserId {
 }
 
 impl TryFrom<&str> for UserId {
-    type Error = PaymentError;
+    type Error = UserIdError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         if value.is_empty() {
-            return Err(PaymentError::MissingUserId);
+            return Err(UserIdError::Missing);
         }
 
         let uuid = value.parse()?;
@@ -43,7 +43,7 @@ impl TryFrom<&str> for UserId {
 }
 
 impl FromStr for UserId {
-    type Err = PaymentError;
+    type Err = UserIdError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         UserId::try_from(s)
@@ -60,11 +60,11 @@ impl OrderId {
 }
 
 impl TryFrom<&str> for OrderId {
-    type Error = PaymentError;
+    type Error = OrderIdError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         if value.is_empty() {
-            return Err(PaymentError::MissingOrderId);
+            return Err(OrderIdError::Missing);
         }
 
         let uuid = value.parse()?;
@@ -74,14 +74,14 @@ impl TryFrom<&str> for OrderId {
 }
 
 impl FromStr for OrderId {
-    type Err = PaymentError;
+    type Err = OrderIdError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         OrderId::try_from(s)
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum PaymentMethod {
     Card,
     Sbp,
@@ -94,4 +94,47 @@ pub(crate) struct PayOrderCommand {
     pub(crate) user_id: UserId,
     pub(crate) order_id: OrderId,
     pub(crate) payment_method: PaymentMethod,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn user_id_parses_uuid() {
+        let raw_uuid = uuid::Uuid::new_v4().to_string();
+        let user_id = UserId::try_from(raw_uuid.as_str()).unwrap();
+        assert_eq!(user_id.as_uuid().to_string(), raw_uuid);
+    }
+
+    #[test]
+    fn user_id_rejects_empty_value() {
+        let err = UserId::try_from("").unwrap_err();
+        assert!(matches!(err, UserIdError::Missing));
+    }
+
+    #[test]
+    fn user_id_rejects_invalid_uuid() {
+        let err = UserId::try_from("wanna snu snu?").unwrap_err();
+        assert!(matches!(err, UserIdError::Invalid(_)));
+    }
+
+    #[test]
+    fn order_id_parses_uuid() {
+        let raw_uuid = uuid::Uuid::new_v4().to_string();
+        let order_id = OrderId::try_from(raw_uuid.as_str()).unwrap();
+        assert_eq!(order_id.as_uuid().to_string(), raw_uuid);
+    }
+
+    #[test]
+    fn order_id_rejects_empty_value() {
+        let err = OrderId::try_from("").unwrap_err();
+        assert!(matches!(err, OrderIdError::Missing));
+    }
+
+    #[test]
+    fn order_id_rejects_invalid_uuid() {
+        let err = OrderId::try_from("lol kek cheburek").unwrap_err();
+        assert!(matches!(err, OrderIdError::Invalid(_)));
+    }
 }

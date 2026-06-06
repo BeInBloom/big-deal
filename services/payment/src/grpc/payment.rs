@@ -33,3 +33,43 @@ impl PaymentService for PaymentGrpcHandler {
         Ok(Response::new(response))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::proto::payment_v1::PaymentMethod;
+
+    #[tokio::test]
+    async fn payorder_reutrns_transaction_uuid() {
+        let handler = PaymentGrpcHandler::new();
+
+        let user_uuid = uuid::Uuid::new_v4().to_string();
+        let order_uuid = uuid::Uuid::new_v4().to_string();
+
+        let req = Request::new(PayOrderRequest {
+            user_uuid,
+            order_uuid,
+            payment_method: PaymentMethod::Card as i32,
+        });
+
+        let res = handler.pay_order(req).await.unwrap().into_inner();
+        let transaction_uuid = uuid::Uuid::parse_str(&res.transaction_uuid);
+
+        assert!(transaction_uuid.is_ok());
+    }
+
+    #[tokio::test]
+    async fn pay_order_returns_invalid_argument_for_invalid_request() {
+        let handler = PaymentGrpcHandler::new();
+
+        let request = Request::new(PayOrderRequest {
+            user_uuid: String::new(),
+            order_uuid: uuid::Uuid::new_v4().to_string(),
+            payment_method: PaymentMethod::Card as i32,
+        });
+
+        let err = handler.pay_order(request).await.unwrap_err();
+
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+    }
+}

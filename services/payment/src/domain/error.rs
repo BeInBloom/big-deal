@@ -2,22 +2,40 @@ use prost::UnknownEnumValue;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub(crate) enum PaymentError {
+pub(crate) enum UserIdError {
     #[error("user_uuid is required")]
-    MissingUserId,
+    Missing,
 
-    #[error("user_uuid is invalid")]
-    InvalidUserId,
+    #[error("user_uuid is invalid: {0}")]
+    Invalid(#[from] uuid::Error),
+}
 
+#[derive(Debug, Error)]
+pub(crate) enum OrderIdError {
     #[error("order_uuid is required")]
-    MissingOrderId,
+    Missing,
 
     #[error("order_uuid is invalid: {0}")]
-    InvalidOrderId(#[from] uuid::Error),
+    Invalid(#[from] uuid::Error),
+}
 
+#[derive(Debug, Error, PartialEq, Eq)]
+pub(crate) enum PaymentMethodError {
     #[error("payment_method is required")]
-    MissingPaymentMethod,
+    Missing,
 
     #[error("payment_method is invalid: {0}")]
-    InvalidPaymentMethod(#[from] UnknownEnumValue),
+    Invalid(#[from] UnknownEnumValue),
+}
+
+#[derive(Debug, Error)]
+pub(crate) enum PayOrderCommandError {
+    #[error(transparent)]
+    UserId(#[from] UserIdError),
+
+    #[error(transparent)]
+    OrderId(#[from] OrderIdError),
+
+    #[error(transparent)]
+    PaymentMethod(#[from] PaymentMethodError),
 }
