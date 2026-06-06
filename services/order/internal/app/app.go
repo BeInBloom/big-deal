@@ -68,6 +68,7 @@ func (a *App) Run(ctx context.Context) error {
 		)
 		defer cancel()
 
+		//nolint:contextcheck // shutdown must outlive canceled run context
 		err := a.server.Shutdown(shutdownCtx)
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil

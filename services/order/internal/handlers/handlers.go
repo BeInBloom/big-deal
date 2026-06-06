@@ -3,10 +3,9 @@ package handlers
 import (
 	"context"
 
-	"github.com/google/uuid"
-
 	orders "github.com/BeInBloom/big-deal/generated/go/order-service/openapi/v1"
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
+	"github.com/google/uuid"
 )
 
 type orderService interface {

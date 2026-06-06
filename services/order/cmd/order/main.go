@@ -13,7 +13,7 @@ func main() {
 
 	app := app.New()
 	if err := app.Run(ctx); err != nil {
-		log.Fatalln("something wrong")
+		log.Println("something wrong")
 	}
 
 	log.Println("server stopped")

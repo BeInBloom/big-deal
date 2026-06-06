@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/uuid"
-
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
+	"github.com/google/uuid"
 )
 
 var (

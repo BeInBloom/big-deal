@@ -3,7 +3,7 @@ use tonic::{Request, Response, Status};
 use crate::{
     domain::{
         errors::InventoryUseCaseError,
-        models::{GetPartQuery, ListPartsQuery, Part},
+        models::{GetPartQuery, ListPartsQuery},
         traits::InventoryUseCases,
     },
     grpc::error::InventoryRequestError,
