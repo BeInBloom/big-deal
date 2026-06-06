@@ -7,6 +7,7 @@ import (
 
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOrderServiceCreateOrder(t *testing.T) {
@@ -38,21 +39,10 @@ func TestOrderServiceCreateOrder(t *testing.T) {
 		Once()
 
 	order, err := deps.service.CreateOrder(ctx, userId, []models.PartId{partId})
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if order.Id() != orderId {
-		t.Fatalf("expected order id %v, got %v", orderId, order.Id())
-	}
-
-	if order.Status() != models.PendingPayment {
-		t.Fatalf("expected status %q, got %q", models.PendingPayment, order.Status())
-	}
-
-	if order.Price() != 1500 {
-		t.Fatalf("expected price 1500, got %d", order.Price())
-	}
+	require.NoError(t, err)
+	require.Equal(t, orderId, order.Id())
+	require.Equal(t, models.PendingPayment, order.Status())
+	require.Equal(t, uint(1500), order.Price())
 }
 
 func TestOrderServiceCreateOrderReturnsPartsError(t *testing.T) {
@@ -70,13 +60,8 @@ func TestOrderServiceCreateOrderReturnsPartsError(t *testing.T) {
 		Once()
 
 	order, err := deps.service.CreateOrder(ctx, userId, []models.PartId{partId})
-	if !errors.Is(err, expectedErr) {
-		t.Fatalf("expected error %v, got %v", expectedErr, err)
-	}
-
-	if order.Id() != (models.OrderId{}) {
-		t.Fatalf("expected zero order, got id %v", order.Id())
-	}
+	require.ErrorIs(t, err, expectedErr)
+	require.Zero(t, order.Id())
 }
 
 func TestOrderServicePayOrderSavesPaidOrder(t *testing.T) {
@@ -118,25 +103,11 @@ func TestOrderServicePayOrderSavesPaidOrder(t *testing.T) {
 		Once()
 
 	order, err := deps.service.PayOrder(ctx, orderId, models.PaymentMethodCARD)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if order.Id() != orderId {
-		t.Fatalf("expected order id %v, got %v", orderId, order.Id())
-	}
-
-	if order.Status() != models.Paid {
-		t.Fatalf("expected status %q, got %q", models.Paid, order.Status())
-	}
-
-	if order.PaymentMethod() != models.PaymentMethodCARD {
-		t.Fatalf("expected payment method %v, got %v", models.PaymentMethodCARD, order.PaymentMethod())
-	}
-
-	if order.TransactionId() != transactionId {
-		t.Fatalf("expected transaction id %v, got %v", transactionId, order.TransactionId())
-	}
+	require.NoError(t, err)
+	require.Equal(t, orderId, order.Id())
+	require.Equal(t, models.Paid, order.Status())
+	require.Equal(t, models.PaymentMethodCARD, order.PaymentMethod())
+	require.Equal(t, transactionId, order.TransactionId())
 }
 
 func TestOrderServicePayOrderReturnsCannotBePaidForCanceledOrder(t *testing.T) {
@@ -160,13 +131,8 @@ func TestOrderServicePayOrderReturnsCannotBePaidForCanceledOrder(t *testing.T) {
 		Once()
 
 	order, err := deps.service.PayOrder(ctx, orderId, models.PaymentMethodCARD)
-	if !errors.Is(err, ErrOrderCannotBePaid) {
-		t.Fatalf("expected error %v, got %v", ErrOrderCannotBePaid, err)
-	}
-
-	if order.Id() != (models.OrderId{}) {
-		t.Fatalf("expected zero order, got id %v", order.Id())
-	}
+	require.ErrorIs(t, err, ErrOrderCannotBePaid)
+	require.Zero(t, order.Id())
 }
 
 func TestOrderServicePayOrderReturnsPaymentError(t *testing.T) {
@@ -196,13 +162,8 @@ func TestOrderServicePayOrderReturnsPaymentError(t *testing.T) {
 		Once()
 
 	order, err := deps.service.PayOrder(ctx, orderId, models.PaymentMethodCARD)
-	if !errors.Is(err, expectedErr) {
-		t.Fatalf("expected error %v, got %v", expectedErr, err)
-	}
-
-	if order.Id() != (models.OrderId{}) {
-		t.Fatalf("expected zero order, got id %v", order.Id())
-	}
+	require.ErrorIs(t, err, expectedErr)
+	require.Zero(t, order.Id())
 }
 
 func TestOrderServiceCancelOrderSavesCanceledOrder(t *testing.T) {
@@ -236,9 +197,7 @@ func TestOrderServiceCancelOrderSavesCanceledOrder(t *testing.T) {
 		Once()
 
 	err := deps.service.CancelOrder(ctx, orderId)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+	require.NoError(t, err)
 }
 
 func TestOrderServiceCancelOrderReturnsCannotBeCanceledForPaidOrder(t *testing.T) {
@@ -265,9 +224,7 @@ func TestOrderServiceCancelOrderReturnsCannotBeCanceledForPaidOrder(t *testing.T
 		Once()
 
 	err := deps.service.CancelOrder(ctx, orderId)
-	if !errors.Is(err, ErrOrderCannotBeCanceled) {
-		t.Fatalf("expected error %v, got %v", ErrOrderCannotBeCanceled, err)
-	}
+	require.ErrorIs(t, err, ErrOrderCannotBeCanceled)
 }
 
 func TestOrderServiceGetOrderReturnsOrder(t *testing.T) {
@@ -291,21 +248,10 @@ func TestOrderServiceGetOrderReturnsOrder(t *testing.T) {
 		Once()
 
 	order, err := deps.service.GetOrder(ctx, orderId)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if order.Id() != orderId {
-		t.Fatalf("expected order id %v, got %v", orderId, order.Id())
-	}
-
-	if order.Status() != models.PendingPayment {
-		t.Fatalf("expected status %q, got %q", models.PendingPayment, order.Status())
-	}
-
-	if order.Price() != 1500 {
-		t.Fatalf("expected price 1500, got %d", order.Price())
-	}
+	require.NoError(t, err)
+	require.Equal(t, orderId, order.Id())
+	require.Equal(t, models.PendingPayment, order.Status())
+	require.Equal(t, uint(1500), order.Price())
 }
 
 func TestOrderServiceGetOrderReturnsRepoError(t *testing.T) {
@@ -322,13 +268,8 @@ func TestOrderServiceGetOrderReturnsRepoError(t *testing.T) {
 		Once()
 
 	order, err := deps.service.GetOrder(ctx, orderId)
-	if !errors.Is(err, expectedErr) {
-		t.Fatalf("expected error %v, got %v", expectedErr, err)
-	}
-
-	if order != nil {
-		t.Fatalf("expected nil order, got %v", order)
-	}
+	require.ErrorIs(t, err, expectedErr)
+	require.Nil(t, order)
 }
 
 type orderServiceTestDeps struct {
