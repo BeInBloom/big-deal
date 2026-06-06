@@ -12,6 +12,7 @@ vars:
   OGEN_VERSION: "v1.12.0"
   YQ_VERSION: "v4.45.2"
   GRPCURL_VERSION: "v1.9.3"
+  MOCKERY_VERSION: "v3.7.0"
 
   BIN_DIR: "{{.ROOT_DIR}}/bin"
   GOLANGCI_LINT: "{{.BIN_DIR}}/golangci-lint"
@@ -23,6 +24,7 @@ vars:
   PROTOC_GEN_GO: "{{.BIN_DIR}}/protoc-gen-go"
   PROTOC_GEN_GO_GRPC: "{{.BIN_DIR}}/protoc-gen-go-grpc"
   GRPCURL: "{{.BIN_DIR}}/grpcurl"
+  MOCKERY: "{{.BIN_DIR}}/mockery"
 
   NODE_MODULES_DIR: "{{.ROOT_DIR}}/node_modules/.bin"
   REDOCLY: "{{.NODE_MODULES_DIR}}/redocly"
@@ -175,6 +177,33 @@ tasks:
           fi
         done
         exit $ERR
+
+  go:install-mockery:
+    desc: "Устанавливает mockery в каталог bin"
+    cmds:
+      - |
+        set -eu
+        if [ ! -x "{{.MOCKERY}}" ] || ! "{{.MOCKERY}}" --version 2>/dev/null | grep -q "{{.MOCKERY_VERSION}}"; then
+          mkdir -p "{{.BIN_DIR}}"
+          echo "📦 Устанавливаем mockery {{.MOCKERY_VERSION}}..."
+          GOBIN="{{.BIN_DIR}}" go install github.com/vektra/mockery/v3@{{.MOCKERY_VERSION}}
+        fi
+    status:
+      - test -x {{.MOCKERY}}
+      - '{{.MOCKERY}} --version 2>/dev/null | grep -q "{{.MOCKERY_VERSION}}"'
+
+  go:gen-mocks:order:
+    desc: "Генерирует mockery-моки для Order service"
+    deps: [go:install-mockery]
+    cmds:
+      - |
+        set -eu
+        "{{.MOCKERY}}" --config "{{.ROOT_DIR}}/.mockery.yml"
+
+  go:gen-mocks:
+    desc: "Генерирует mockery-моки для Go-сервисов"
+    cmds:
+      - task: go:gen-mocks:order
 
   install-buf:
     desc: "Устанавливает Buf в каталог bin"

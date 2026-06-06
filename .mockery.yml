@@ -1,0 +1,17 @@
+all: false
+formatter: goimports
+force-file-write: true
+log-level: info
+template: testify
+
+packages:
+  github.com/BeInBloom/big-deal/services/order/internal/services:
+    config:
+      dir: services/order/internal/services
+      filename: mocks_test.go
+      pkgname: services
+      structname: Mock{{.InterfaceName}}
+    interfaces:
+      OrderRepo:
+      PartService:
+      PaymentService:
