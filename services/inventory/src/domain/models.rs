@@ -301,3 +301,194 @@ impl ListPartsQuery {
             && self.tags.matches(&part.tags)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn part_id_parses_valid_uuid() {
+        let id = uuid::Uuid::new_v4();
+        let part_id: PartId = id.to_string().parse().unwrap();
+        assert_eq!(part_id.0, id);
+    }
+
+    #[test]
+    fn part_id_rejects_empty_value() {
+        let err = "".parse::<PartId>().unwrap_err();
+        assert!(matches!(err, PartIdError::Missing));
+    }
+
+    #[test]
+    fn part_id_rejects_invalid_uuid() {
+        let err = "some pretty kitty".parse::<PartId>().unwrap_err();
+        assert!(matches!(err, PartIdError::Invalid(_)));
+    }
+
+    #[test]
+    fn positive_measurement_accepts_positive_finite_value() {
+        let num = 10.10_f64;
+        let positive_measurement: PositiveMeasurement = num.try_into().unwrap();
+        assert_eq!(num, positive_measurement.0);
+    }
+
+    #[test]
+    fn positive_measurement_rejects_zero() {
+        let num = 0_f64;
+        let err = PositiveMeasurement::try_from(num).unwrap_err();
+        assert!(matches!(err, MeasurementError::Invalid));
+    }
+
+    #[test]
+    fn positive_measurement_rejects_negative_value() {
+        let num = -1.123_f64;
+        let err = PositiveMeasurement::try_from(num).unwrap_err();
+        assert!(matches!(err, MeasurementError::Invalid));
+    }
+
+    #[test]
+    fn positive_measurement_rejects_nan() {
+        let num = f64::NAN;
+        let err = PositiveMeasurement::try_from(num).unwrap_err();
+        assert!(matches!(err, MeasurementError::Invalid));
+    }
+
+    #[test]
+    fn positive_measurement_rejects_infinity() {
+        let num = f64::INFINITY;
+        let err = PositiveMeasurement::try_from(num).unwrap_err();
+        assert!(matches!(err, MeasurementError::Invalid));
+    }
+
+    #[test]
+    fn list_parts_query_matches_any_part_by_default() {
+        let sample_parts = sample_parts();
+        let default_query = ListPartsQuery::default();
+
+        for part in sample_parts {
+            assert!(default_query.matches(&part));
+        }
+    }
+
+    #[test]
+    fn list_parts_query_matches_part_when_all_filters_match() {
+        let part = sample_part();
+
+        let query = ListPartsQuery {
+            ids: vec![String::from(part.id)].try_into().unwrap(),
+            names: vec![part.name.clone()].into(),
+            categories: [part.category].into_iter().collect(),
+            manufacturer_countries: vec![String::from(part.manufacturer.country.clone())].into(),
+            tags: vec!["engine".to_string(), "critical".to_string()].into(),
+        };
+
+        assert!(query.matches(&part));
+    }
+
+    #[test]
+    fn list_parts_query_rejects_part_when_filter_does_not_match() {
+        let part = sample_part();
+
+        let cases = [
+            ListPartsQuery {
+                ids: vec!["99999999-9999-4999-8999-999999999999".to_string()]
+                    .try_into()
+                    .unwrap(),
+                ..ListPartsQuery::default()
+            },
+            ListPartsQuery {
+                names: vec!["Wrong name".to_string()].into(),
+                ..ListPartsQuery::default()
+            },
+            ListPartsQuery {
+                categories: [PartCategory::Porthole].into_iter().collect(),
+                ..ListPartsQuery::default()
+            },
+            ListPartsQuery {
+                manufacturer_countries: vec!["FR".to_string()].into(),
+                ..ListPartsQuery::default()
+            },
+            ListPartsQuery {
+                tags: vec!["missing-tag".to_string()].into(),
+                ..ListPartsQuery::default()
+            },
+        ];
+
+        for query in cases {
+            assert!(!query.matches(&part));
+        }
+    }
+
+    fn sample_parts() -> Vec<Part> {
+        vec![
+            Part {
+                id: "11111111-1111-4111-8111-111111111111".parse().unwrap(),
+                name: "Main engine".to_string(),
+                price: MoneyCents(12_500),
+                stock_quantity: StockQuantity(4),
+                category: PartCategory::Engine,
+                dimensions: sample_dimensions(),
+                manufacturer: Manufacturer {
+                    name: "ACME".to_string(),
+                    country: CountryCode("US".to_string()),
+                    website: "https://acme.example".to_string(),
+                },
+                tags: vec!["engine".to_string(), "critical".to_string()].into(),
+                metadata: HashMap::new(),
+                created_at: SystemTime::UNIX_EPOCH,
+                updated_at: SystemTime::UNIX_EPOCH,
+            },
+            Part {
+                id: "22222222-2222-4222-8222-222222222222".parse().unwrap(),
+                name: "Fuel tank".to_string(),
+                price: MoneyCents(8_000),
+                stock_quantity: StockQuantity(12),
+                category: PartCategory::Fuel,
+                dimensions: sample_dimensions(),
+                manufacturer: Manufacturer {
+                    name: "Orbital Parts".to_string(),
+                    country: CountryCode("DE".to_string()),
+                    website: "https://orbital.example".to_string(),
+                },
+                tags: vec!["fuel".to_string(), "storage".to_string()].into(),
+                metadata: HashMap::new(),
+                created_at: SystemTime::UNIX_EPOCH,
+                updated_at: SystemTime::UNIX_EPOCH,
+            },
+            Part {
+                id: "33333333-3333-4333-8333-333333333333".parse().unwrap(),
+                name: "Left wing".to_string(),
+                price: MoneyCents(20_000),
+                stock_quantity: StockQuantity(2),
+                category: PartCategory::Wing,
+                dimensions: sample_dimensions(),
+                manufacturer: Manufacturer {
+                    name: "Sky Forge".to_string(),
+                    country: CountryCode("JP".to_string()),
+                    website: "https://skyforge.example".to_string(),
+                },
+                tags: vec!["wing".to_string(), "aero".to_string()].into(),
+                metadata: HashMap::new(),
+                created_at: SystemTime::UNIX_EPOCH,
+                updated_at: SystemTime::UNIX_EPOCH,
+            },
+        ]
+    }
+
+    fn sample_part() -> Part {
+        sample_parts().into_iter().next().unwrap()
+    }
+
+    fn sample_dimensions() -> Dimensions {
+        Dimensions {
+            length: measurement(1.0),
+            width: measurement(2.0),
+            height: measurement(3.0),
+            weight: measurement(4.0),
+        }
+    }
+
+    fn measurement(value: f64) -> PositiveMeasurement {
+        PositiveMeasurement::try_from(value).unwrap()
+    }
+}

@@ -64,7 +64,7 @@ mod tests {
     #[test]
     fn payment_method_rejects_unspecified() {
         let err = PaymentMethod::try_from(payment_v1::PaymentMethod::Unspecified).unwrap_err();
-        assert!(matches!(err, PaymentMethodError::Missing))
+        assert!(matches!(err, PaymentMethodError::Missing));
     }
 
     #[test]
