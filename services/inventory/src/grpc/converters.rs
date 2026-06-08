@@ -152,3 +152,186 @@ fn money_cents_to_proto(value: MoneyCents) -> f64 {
 fn stock_quantity_to_proto(value: StockQuantity) -> i64 {
     u64::from(value) as i64
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::errors::PartIdError;
+    use crate::domain::models::{CountryCode, PartId, Tags};
+
+    use super::*;
+
+    #[test]
+    fn part_category_maps_proto_values() {
+        let cases = [
+            (inventory_v1::PartCategory::Engine, PartCategory::Engine),
+            (inventory_v1::PartCategory::Fuel, PartCategory::Fuel),
+            (inventory_v1::PartCategory::Porthole, PartCategory::Porthole),
+            (inventory_v1::PartCategory::Wing, PartCategory::Wing),
+        ];
+
+        for (proto_category, expected_category) in cases {
+            let category = PartCategory::try_from(proto_category).unwrap();
+            assert_eq!(category, expected_category);
+        }
+    }
+
+    #[test]
+    fn part_category_rejects_unspecified() {
+        let err = PartCategory::try_from(inventory_v1::PartCategory::Unspecified).unwrap_err();
+        assert!(matches!(err, InventoryRequestError::InvalidPartCategory));
+    }
+
+    #[test]
+    fn get_part_request_converts_to_query() {
+        let raw_uuid = uuid::Uuid::new_v4().to_string();
+        let req = GetPartRequest {
+            uuid: raw_uuid.clone(),
+        };
+        let query = GetPartQuery::try_from(req).unwrap();
+        assert_eq!(String::from(query.id), raw_uuid);
+    }
+
+    #[test]
+    fn get_part_request_rejects_empty_uuid() {
+        let req = GetPartRequest {
+            uuid: String::new(),
+        };
+        let err = GetPartQuery::try_from(req).unwrap_err();
+        assert!(matches!(
+            err,
+            InventoryRequestError::PartId(PartIdError::Missing),
+        ));
+    }
+
+    #[test]
+    fn get_part_request_rejects_invalid_uuid() {
+        let req = GetPartRequest {
+            uuid: String::from("work harder, comrade"),
+        };
+        let err = GetPartQuery::try_from(req).unwrap_err();
+        assert!(matches!(
+            err,
+            InventoryRequestError::PartId(PartIdError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn list_parts_request_without_filter_converts_to_default_query() {
+        let req = ListPartsRequest { filter: None };
+        let query = ListPartsQuery::try_from(req).unwrap();
+        assert_eq!(query, ListPartsQuery::default());
+    }
+
+    #[test]
+    fn list_parts_request_converts_filter_to_query() {
+        let raw_uuid = "11111111-1111-4111-8111-111111111111".to_string();
+
+        let req = ListPartsRequest {
+            filter: Some(inventory_v1::InventoryPartsFilter {
+                uuids: vec![raw_uuid.clone()],
+                names: vec!["Main engine".to_string()],
+                categories: vec![inventory_v1::PartCategory::Engine as i32],
+                manufacturer_countries: vec!["US".to_string()],
+                tags: vec!["engine".to_string(), "critical".to_string()],
+            }),
+        };
+
+        let query = ListPartsQuery::try_from(req).unwrap();
+
+        let expected_id: PartId = raw_uuid.parse().unwrap();
+        assert!(query.ids.matches(&expected_id));
+        assert!(query.names.matches("Main engine"));
+        assert!(query.categories.matches(&PartCategory::Engine));
+        assert!(
+            query
+                .manufacturer_countries
+                .matches(&CountryCode::from("US".to_string()))
+        );
+        assert!(query.tags.matches(&Tags::from(vec![
+            "engine".to_string(),
+            "critical".to_string(),
+            "extra".to_string(),
+        ])));
+
+        let other_id: PartId = "22222222-2222-4222-8222-222222222222".parse().unwrap();
+        assert!(!query.ids.matches(&other_id));
+        assert!(!query.names.matches("Wrong name"));
+        assert!(!query.categories.matches(&PartCategory::Wing));
+        assert!(
+            !query
+                .manufacturer_countries
+                .matches(&CountryCode::from("DE".to_string()))
+        );
+        assert!(!query.tags.matches(&Tags::from(vec!["engine".to_string()])));
+    }
+
+    #[test]
+    fn list_parts_request_rejects_invalid_category() {
+        let req = ListPartsRequest {
+            filter: Some(inventory_v1::InventoryPartsFilter {
+                uuids: Vec::new(),
+                names: Vec::new(),
+                categories: vec![999],
+                manufacturer_countries: Vec::new(),
+                tags: Vec::new(),
+            }),
+        };
+
+        let err = ListPartsQuery::try_from(req).unwrap_err();
+        assert!(matches!(err, InventoryRequestError::UnknownEnumValue(_)));
+    }
+
+    #[test]
+    fn list_parts_request_rejects_empty_uuid() {
+        let req = ListPartsRequest {
+            filter: Some(inventory_v1::InventoryPartsFilter {
+                uuids: vec![String::new()],
+                names: Vec::new(),
+                categories: Vec::new(),
+                manufacturer_countries: Vec::new(),
+                tags: Vec::new(),
+            }),
+        };
+
+        let err = ListPartsQuery::try_from(req).unwrap_err();
+        assert!(matches!(
+            err,
+            InventoryRequestError::PartId(PartIdError::Missing)
+        ));
+    }
+
+    #[test]
+    fn list_parts_request_rejects_invalid_uuid() {
+        let req = ListPartsRequest {
+            filter: Some(inventory_v1::InventoryPartsFilter {
+                uuids: vec!["not-a-uuid".to_string()],
+                names: Vec::new(),
+                categories: Vec::new(),
+                manufacturer_countries: Vec::new(),
+                tags: Vec::new(),
+            }),
+        };
+
+        let err = ListPartsQuery::try_from(req).unwrap_err();
+        assert!(matches!(
+            err,
+            InventoryRequestError::PartId(PartIdError::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn list_parts_request_rejects_unspecified_category() {
+        let req = ListPartsRequest {
+            filter: Some(inventory_v1::InventoryPartsFilter {
+                uuids: Vec::new(),
+                names: Vec::new(),
+                categories: vec![inventory_v1::PartCategory::Unspecified as i32],
+                manufacturer_countries: Vec::new(),
+                tags: Vec::new(),
+            }),
+        };
+
+        let err = ListPartsQuery::try_from(req).unwrap_err();
+        assert!(matches!(err, InventoryRequestError::InvalidPartCategory));
+    }
+}
