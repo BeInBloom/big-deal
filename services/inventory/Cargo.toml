@@ -12,5 +12,8 @@ prost.workspace = true
 prost-types.workspace = true
 uuid.workspace = true
 
+[dev-dependencies]
+mockall.workspace = true
+
 [build-dependencies]
 tonic-build.workspace = true

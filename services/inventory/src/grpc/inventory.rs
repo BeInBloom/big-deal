@@ -83,3 +83,134 @@ fn map_use_case_error(error: InventoryUseCaseError) -> Status {
         InventoryUseCaseError::Storage(_) => Status::internal("inventory storage failed"),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        domain::{
+            errors::{InventoryUseCaseError, PartRepoError},
+            traits::MockInventoryUseCases,
+        },
+        proto::inventory_v1,
+    };
+
+    use super::*;
+
+    #[tokio::test]
+    async fn get_part_returns_invalid_argument_for_invalid_request() {
+        let use_cases = MockInventoryUseCases::new();
+        let handler = InventoryGrpcHandler::new(use_cases);
+
+        let req = Request::new(GetPartRequest {
+            uuid: String::new(),
+        });
+
+        let err = handler.get_part(req).await.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+    }
+
+    #[tokio::test]
+    async fn get_part_returns_not_found_when_part_is_missing() {
+        let raw_uuid = "11111111-1111-4111-8111-111111111111".to_string();
+        let part_id = raw_uuid.parse().unwrap();
+
+        let mut use_cases = MockInventoryUseCases::new();
+        use_cases
+            .expect_get_part()
+            .with(mockall::predicate::eq(GetPartQuery { id: part_id }))
+            .times(1)
+            .returning(|_| Box::pin(std::future::ready(Ok(None))));
+
+        let handler = InventoryGrpcHandler::new(use_cases);
+
+        let req = Request::new(GetPartRequest { uuid: raw_uuid });
+
+        let err = handler.get_part(req).await.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::NotFound);
+    }
+
+    #[tokio::test]
+    async fn get_part_returns_internal_when_use_case_fails() {
+        let raw_uuid = "11111111-1111-4111-8111-111111111111".to_string();
+        let part_id = raw_uuid.parse().unwrap();
+
+        let mut use_cases = MockInventoryUseCases::new();
+        use_cases
+            .expect_get_part()
+            .with(mockall::predicate::eq(GetPartQuery { id: part_id }))
+            .times(1)
+            .returning(|_| {
+                Box::pin(std::future::ready(Err(InventoryUseCaseError::Storage(
+                    PartRepoError::Failed,
+                ))))
+            });
+
+        let handler = InventoryGrpcHandler::new(use_cases);
+
+        let req = Request::new(GetPartRequest { uuid: raw_uuid });
+
+        let err = handler.get_part(req).await.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::Internal);
+    }
+
+    #[tokio::test]
+    async fn list_parts_returns_empty_list() {
+        let query = ListPartsQuery::default();
+
+        let mut use_cases = MockInventoryUseCases::new();
+        use_cases
+            .expect_list_parts()
+            .with(mockall::predicate::eq(query))
+            .times(1)
+            .returning(|_| Box::pin(std::future::ready(Ok(Vec::new()))));
+
+        let handler = InventoryGrpcHandler::new(use_cases);
+
+        let req = Request::new(ListPartsRequest { filter: None });
+
+        let res = handler.list_parts(req).await.unwrap().into_inner();
+        assert!(res.parts.is_empty());
+    }
+
+    #[tokio::test]
+    async fn list_parts_returns_invalid_argument_for_invalid_request() {
+        let use_cases = MockInventoryUseCases::new();
+        let handler = InventoryGrpcHandler::new(use_cases);
+
+        let req = Request::new(ListPartsRequest {
+            filter: Some(inventory_v1::InventoryPartsFilter {
+                uuids: vec!["not-a-uuid".to_string()],
+                names: Vec::new(),
+                categories: Vec::new(),
+                manufacturer_countries: Vec::new(),
+                tags: Vec::new(),
+            }),
+        });
+
+        let err = handler.list_parts(req).await.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+    }
+
+    #[tokio::test]
+    async fn list_parts_returns_internal_when_use_case_fails() {
+        let query = ListPartsQuery::default();
+
+        let mut use_cases = MockInventoryUseCases::new();
+        use_cases
+            .expect_list_parts()
+            .with(mockall::predicate::eq(query))
+            .times(1)
+            .returning(|_| {
+                Box::pin(std::future::ready(Err(InventoryUseCaseError::Storage(
+                    PartRepoError::Failed,
+                ))))
+            });
+
+        let handler = InventoryGrpcHandler::new(use_cases);
+
+        let req = Request::new(ListPartsRequest { filter: None });
+
+        let err = handler.list_parts(req).await.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::Internal);
+    }
+}

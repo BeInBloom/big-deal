@@ -3,6 +3,7 @@ use crate::domain::{
     models::{GetPartQuery, ListPartsQuery, Part, PartId},
 };
 
+#[cfg_attr(test, mockall::automock)]
 pub(crate) trait PartRepo: Send + Sync + 'static {
     fn get(&self, id: PartId) -> impl Future<Output = Result<Option<Part>, PartRepoError>> + Send;
 
@@ -12,6 +13,7 @@ pub(crate) trait PartRepo: Send + Sync + 'static {
     ) -> impl Future<Output = Result<Vec<Part>, PartRepoError>> + Send;
 }
 
+#[cfg_attr(test, mockall::automock)]
 pub(crate) trait InventoryUseCases: Send + Sync + 'static {
     fn get_part(
         &self,

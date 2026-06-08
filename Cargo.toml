@@ -14,3 +14,4 @@ prost = "0.13"
 uuid = { version = "1", features = ["v4"] }
 tonic-build = "0.12"
 prost-types = "0.13"
+mockall = "0.14"
