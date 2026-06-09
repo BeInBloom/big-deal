@@ -141,7 +141,7 @@ mod tests {
             .times(1)
             .returning(|_| {
                 Box::pin(std::future::ready(Err(InventoryUseCaseError::Storage(
-                    PartRepoError::Failed,
+                    PartRepoError::Storage,
                 ))))
             });
 
@@ -202,7 +202,7 @@ mod tests {
             .times(1)
             .returning(|_| {
                 Box::pin(std::future::ready(Err(InventoryUseCaseError::Storage(
-                    PartRepoError::Failed,
+                    PartRepoError::Storage,
                 ))))
             });
 

@@ -3,8 +3,11 @@ use thiserror::Error;
 #[allow(dead_code)]
 #[derive(Debug, Error)]
 pub(crate) enum PartRepoError {
-    #[error("part repository failed")]
-    Failed,
+    #[error("part repository storage failed")]
+    Storage,
+
+    #[error("part repository returned invalid data: {0}")]
+    InvalidData(String),
 }
 
 #[derive(Debug, Error)]
@@ -20,6 +23,24 @@ pub(crate) enum PartIdError {
 pub(crate) enum MeasurementError {
     #[error("meaurement must be finite and positive")]
     Invalid,
+}
+
+#[derive(Debug, Error)]
+pub(crate) enum PartCategoryError {
+    #[error("unknown value `{0}`")]
+    Unknown(String),
+}
+
+#[derive(Debug, Error)]
+pub(crate) enum MoneyCentsError {
+    #[error("value must be non-negative: {0}")]
+    Negative(i64),
+}
+
+#[derive(Debug, Error)]
+pub(crate) enum StockQuantityError {
+    #[error("value must be non-negative: {0}")]
+    Negative(i64),
 }
 
 #[derive(Debug, thiserror::Error)]

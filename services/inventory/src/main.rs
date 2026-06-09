@@ -1,5 +1,5 @@
 use crate::{
-    app::App, grpc::inventory::InventoryGrpcHandler, repo::map_repo::MapPartRepo,
+    app::App, grpc::inventory::InventoryGrpcHandler, repo::map::map_repo::MapPartRepo,
     service::inventory::InventoryManager,
 };
 

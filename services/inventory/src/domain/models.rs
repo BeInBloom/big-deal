@@ -1,13 +1,16 @@
 use std::{
     borrow::Borrow,
     collections::{HashMap, HashSet},
+    fmt,
     str::FromStr,
     time::SystemTime,
 };
 
 use uuid::Uuid;
 
-use crate::domain::errors::{MeasurementError, PartIdError};
+use crate::domain::errors::{
+    MeasurementError, MoneyCentsError, PartCategoryError, PartIdError, StockQuantityError,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Name(String);
@@ -139,18 +142,60 @@ impl From<Tags> for Vec<String> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct MoneyCents(u64);
 
+impl MoneyCents {
+    pub(crate) fn new(num: u64) -> Self {
+        Self(num)
+    }
+}
+
 impl From<MoneyCents> for u64 {
     fn from(value: MoneyCents) -> Self {
         value.0
     }
 }
 
+impl From<u64> for MoneyCents {
+    fn from(value: u64) -> Self {
+        Self::new(value)
+    }
+}
+
+impl TryFrom<i64> for MoneyCents {
+    type Error = MoneyCentsError;
+
+    fn try_from(value: i64) -> Result<Self, Self::Error> {
+        let value = u64::try_from(value).map_err(|_| MoneyCentsError::Negative(value))?;
+        Ok(Self::from(value))
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct StockQuantity(u64);
+
+impl StockQuantity {
+    pub(crate) fn new(num: u64) -> Self {
+        Self(num)
+    }
+}
 
 impl From<StockQuantity> for u64 {
     fn from(value: StockQuantity) -> Self {
         value.0
+    }
+}
+
+impl From<u64> for StockQuantity {
+    fn from(value: u64) -> Self {
+        Self::new(value)
+    }
+}
+
+impl TryFrom<i64> for StockQuantity {
+    type Error = StockQuantityError;
+
+    fn try_from(value: i64) -> Result<Self, Self::Error> {
+        let value = u64::try_from(value).map_err(|_| StockQuantityError::Negative(value))?;
+        Ok(Self::from(value))
     }
 }
 
@@ -196,6 +241,33 @@ pub(crate) enum PartCategory {
     Fuel,
     Porthole,
     Wing,
+}
+
+impl fmt::Display for PartCategory {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Self::Engine => "ENGINE",
+            Self::Fuel => "FUEL",
+            Self::Porthole => "PORTHOLE",
+            Self::Wing => "WING",
+        };
+
+        formatter.write_str(value)
+    }
+}
+
+impl FromStr for PartCategory {
+    type Err = PartCategoryError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "ENGINE" => Ok(Self::Engine),
+            "FUEL" => Ok(Self::Fuel),
+            "PORTHOLE" => Ok(Self::Porthole),
+            "WING" => Ok(Self::Wing),
+            _ => Err(PartCategoryError::Unknown(value.to_string())),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -252,7 +324,6 @@ pub(crate) struct Manufacturer {
     pub(crate) website: String,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum MetadataValue {
     String(String),
@@ -264,15 +335,19 @@ pub(crate) enum MetadataValue {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Part {
     pub(crate) id: PartId,
+    //TODO: Подумать над тем, чтобы заменить на Name
+    //пока смысла в этом не много
     pub(crate) name: String,
     pub(crate) price: MoneyCents,
     pub(crate) stock_quantity: StockQuantity,
     pub(crate) category: PartCategory,
+    pub(crate) description: String,
     pub(crate) dimensions: Dimensions,
     pub(crate) manufacturer: Manufacturer,
     pub(crate) tags: Tags,
     pub(crate) metadata: HashMap<String, MetadataValue>,
     pub(crate) created_at: SystemTime,
+    //Возможно стоит более явно различать было обновление или нет
     pub(crate) updated_at: SystemTime,
 }
 
@@ -427,6 +502,7 @@ mod tests {
                 price: MoneyCents(12_500),
                 stock_quantity: StockQuantity(4),
                 category: PartCategory::Engine,
+                description: String::default(),
                 dimensions: sample_dimensions(),
                 manufacturer: Manufacturer {
                     name: "ACME".to_string(),
@@ -444,6 +520,7 @@ mod tests {
                 price: MoneyCents(8_000),
                 stock_quantity: StockQuantity(12),
                 category: PartCategory::Fuel,
+                description: String::default(),
                 dimensions: sample_dimensions(),
                 manufacturer: Manufacturer {
                     name: "Orbital Parts".to_string(),
@@ -461,6 +538,7 @@ mod tests {
                 price: MoneyCents(20_000),
                 stock_quantity: StockQuantity(2),
                 category: PartCategory::Wing,
+                description: String::default(),
                 dimensions: sample_dimensions(),
                 manufacturer: Manufacturer {
                     name: "Sky Forge".to_string(),

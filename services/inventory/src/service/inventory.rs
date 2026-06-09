@@ -67,7 +67,7 @@ mod tests {
         repo.expect_get()
             .with(mockall::predicate::eq(part_id))
             .times(1)
-            .returning(|_| Box::pin(std::future::ready(Err(PartRepoError::Failed))));
+            .returning(|_| Box::pin(std::future::ready(Err(PartRepoError::Storage))));
 
         let manager = InventoryManager::new(repo);
 
@@ -102,7 +102,7 @@ mod tests {
         repo.expect_list()
             .with(mockall::predicate::eq(query.clone()))
             .times(1)
-            .returning(|_| Box::pin(std::future::ready(Err(PartRepoError::Failed))));
+            .returning(|_| Box::pin(std::future::ready(Err(PartRepoError::Storage))));
 
         let manager = InventoryManager::new(repo);
         let err = manager.list_parts(query).await.unwrap_err();
