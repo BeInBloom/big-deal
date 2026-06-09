@@ -436,6 +436,21 @@ mod tests {
     }
 
     #[test]
+    fn part_category_round_trips_storage_strings() {
+        let cases = [
+            (PartCategory::Engine, "ENGINE"),
+            (PartCategory::Fuel, "FUEL"),
+            (PartCategory::Porthole, "PORTHOLE"),
+            (PartCategory::Wing, "WING"),
+        ];
+
+        for (category, raw) in cases {
+            assert_eq!(category.to_string(), raw);
+            assert_eq!(raw.parse::<PartCategory>().unwrap(), category);
+        }
+    }
+
+    #[test]
     fn list_parts_query_matches_any_part_by_default() {
         let sample_parts = sample_parts();
         let default_query = ListPartsQuery::default();
