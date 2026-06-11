@@ -1,4 +1,6 @@
-use platform_mongo::{ArrayOp, ArrayPredicate, Field, Filter, FilterError, IntoBson, bson};
+use platform_mongo::{
+    ArrayOp, ArrayPredicate, Field, Filter, FilterError, IntoBson, ScalarOp, ScalarPredicate, bson,
+};
 
 use crate::domain::models::{
     CountryCode, CountryCodes, ListPartsQuery, Name, Names, PartCategories, PartCategory, PartId,
@@ -108,6 +110,19 @@ impl IntoFilter for ListPartsQuery {
         .flatten();
 
         Filter::try_from_predicates(predicates)
+    }
+}
+
+impl ScalarPredicate for PartId {
+    type Field = PartField;
+
+    const FIELD: Self::Field = PartField::Id;
+    const OPERATOR: ScalarOp = ScalarOp::Eq;
+}
+
+impl IntoFilter for PartId {
+    fn into_filter(self) -> Result<Filter, FilterError> {
+        Filter::try_from_predicates([self.into_predicate()])
     }
 }
 

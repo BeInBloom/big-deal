@@ -1,3 +1,4 @@
+use platform_mongo::FilterError;
 use thiserror::Error;
 
 use crate::domain::errors::{
@@ -8,10 +9,16 @@ use crate::domain::errors::{
 #[derive(Debug, Error)]
 pub(crate) enum MongoPartRepoError {
     #[error("mongo operation failed: {0}")]
-    Driver(#[from] mongodb::error::Error),
+    Driver(mongodb::error::Error),
+
+    #[error("part document deserialization failed: {0}")]
+    DocumentDecode(mongodb::error::Error),
 
     #[error("part document is invalid: {0}")]
     Document(#[from] PartDocumentError),
+
+    #[error("mongo filter is invalid: {0}")]
+    Filter(#[from] FilterError),
 }
 
 #[derive(Debug, Error)]
@@ -38,11 +45,25 @@ pub(crate) enum PartDocumentError {
     },
 }
 
+impl From<mongodb::error::Error> for MongoPartRepoError {
+    fn from(error: mongodb::error::Error) -> Self {
+        if matches!(
+            error.kind.as_ref(),
+            mongodb::error::ErrorKind::BsonDeserialization(_)
+        ) {
+            Self::DocumentDecode(error)
+        } else {
+            Self::Driver(error)
+        }
+    }
+}
+
 impl From<MongoPartRepoError> for PartRepoError {
     fn from(error: MongoPartRepoError) -> Self {
         match error {
-            MongoPartRepoError::Driver(_) => Self::Storage,
+            MongoPartRepoError::Driver(_) | MongoPartRepoError::Filter(_) => Self::Storage,
             MongoPartRepoError::Document(error) => Self::InvalidData(error.to_string()),
+            MongoPartRepoError::DocumentDecode(error) => Self::InvalidData(error.to_string()),
         }
     }
 }
