@@ -17,6 +17,14 @@ pub(in crate::repo::mongo) trait IntoMongoValue {
     fn into_mongo_value(self) -> bson::Bson;
 }
 
+trait PartFilterSpec: IntoIterator
+where
+    Self::Item: IntoMongoValue,
+{
+    const FIELD: PartField;
+    const OPERATOR: MongoOperator;
+}
+
 pub(in crate::repo::mongo) struct PartFilterDocument {
     inner: bson::Document,
 }
@@ -35,6 +43,12 @@ pub(in crate::repo::mongo) enum PartField {
     Tags,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum MongoOperator {
+    In,
+    All,
+}
+
 impl PartFilterDocument {
     pub(in crate::repo::mongo) fn into_inner(self) -> bson::Document {
         self.inner
@@ -50,6 +64,19 @@ impl PartField {
             Self::ManufacturerCountry => "manufacturer.country",
             Self::Tags => "tags",
         }
+    }
+}
+
+impl MongoOperator {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::In => "$in",
+            Self::All => "$all",
+        }
+    }
+
+    fn into_filter(self, values: Vec<bson::Bson>) -> bson::Bson {
+        bson::doc! { self.as_str(): values }.into()
     }
 }
 
@@ -103,33 +130,50 @@ impl IntoMongoValue for PartCategory {
     }
 }
 
-impl IntoMongoPredicate for PartIds {
-    fn into_mongo_predicate(self) -> Option<MongoPredicate> {
-        in_predicate(PartField::Id, self)
-    }
+impl PartFilterSpec for PartIds {
+    const FIELD: PartField = PartField::Id;
+    const OPERATOR: MongoOperator = MongoOperator::In;
 }
 
-impl IntoMongoPredicate for Names {
-    fn into_mongo_predicate(self) -> Option<MongoPredicate> {
-        in_predicate(PartField::Name, self)
-    }
+impl PartFilterSpec for Names {
+    const FIELD: PartField = PartField::Name;
+    const OPERATOR: MongoOperator = MongoOperator::In;
 }
 
-impl IntoMongoPredicate for PartCategories {
-    fn into_mongo_predicate(self) -> Option<MongoPredicate> {
-        in_predicate(PartField::Category, self)
-    }
+impl PartFilterSpec for PartCategories {
+    const FIELD: PartField = PartField::Category;
+    const OPERATOR: MongoOperator = MongoOperator::In;
 }
 
-impl IntoMongoPredicate for CountryCodes {
-    fn into_mongo_predicate(self) -> Option<MongoPredicate> {
-        in_predicate(PartField::ManufacturerCountry, self)
-    }
+impl PartFilterSpec for CountryCodes {
+    const FIELD: PartField = PartField::ManufacturerCountry;
+    const OPERATOR: MongoOperator = MongoOperator::In;
 }
 
-impl IntoMongoPredicate for Tags {
+impl PartFilterSpec for Tags {
+    const FIELD: PartField = PartField::Tags;
+    const OPERATOR: MongoOperator = MongoOperator::All;
+}
+
+impl<T> IntoMongoPredicate for T
+where
+    T: PartFilterSpec,
+    T::Item: IntoMongoValue,
+{
     fn into_mongo_predicate(self) -> Option<MongoPredicate> {
-        all_predicate(PartField::Tags, self)
+        let values = self
+            .into_iter()
+            .map(IntoMongoValue::into_mongo_value)
+            .collect::<Vec<_>>();
+
+        if values.is_empty() {
+            return None;
+        }
+
+        Some(MongoPredicate {
+            field: T::FIELD,
+            filter: T::OPERATOR.into_filter(values),
+        })
     }
 }
 
@@ -146,44 +190,4 @@ impl IntoMongoFilter for ListPartsQuery {
         .flatten()
         .collect()
     }
-}
-
-fn in_predicate<I, T>(field: PartField, values: I) -> Option<MongoPredicate>
-where
-    T: IntoMongoValue,
-    I: IntoIterator<Item = T>,
-{
-    let values = values
-        .into_iter()
-        .map(IntoMongoValue::into_mongo_value)
-        .collect::<Vec<_>>();
-
-    if values.is_empty() {
-        return None;
-    }
-
-    Some(MongoPredicate {
-        field,
-        filter: bson::doc! { "$in": values}.into(),
-    })
-}
-
-fn all_predicate<I, T>(field: PartField, values: I) -> Option<MongoPredicate>
-where
-    T: IntoMongoValue,
-    I: IntoIterator<Item = T>,
-{
-    let values = values
-        .into_iter()
-        .map(IntoMongoValue::into_mongo_value)
-        .collect::<Vec<_>>();
-
-    if values.is_empty() {
-        return None;
-    }
-
-    Some(MongoPredicate {
-        field,
-        filter: bson::doc! { "$all": values}.into(),
-    })
 }
