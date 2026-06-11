@@ -13,6 +13,7 @@ prost-types.workspace = true
 uuid.workspace = true
 serde.workspace = true
 mongodb.workspace = true
+platform-mongo.workspace = true
 
 [dev-dependencies]
 mockall.workspace = true

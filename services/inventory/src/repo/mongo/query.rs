@@ -1,41 +1,16 @@
-use mongodb::bson;
+use platform_mongo::{ArrayOp, ArrayPredicate, Field, Filter, FilterError, IntoBson, bson};
 
 use crate::domain::models::{
     CountryCode, CountryCodes, ListPartsQuery, Name, Names, PartCategories, PartCategory, PartId,
     PartIds, Tag, Tags,
 };
 
-pub(in crate::repo::mongo) trait IntoMongoFilter {
-    fn into_mongo_filter(self) -> PartFilterDocument;
-}
-
-pub(in crate::repo::mongo) trait IntoMongoPredicate {
-    fn into_mongo_predicate(self) -> Option<MongoPredicate>;
-}
-
-pub(in crate::repo::mongo) trait IntoMongoValue {
-    fn into_mongo_value(self) -> bson::Bson;
-}
-
-trait PartFilterSpec: IntoIterator
-where
-    Self::Item: IntoMongoValue,
-{
-    const FIELD: PartField;
-    const OPERATOR: MongoOperator;
-}
-
-pub(in crate::repo::mongo) struct PartFilterDocument {
-    inner: bson::Document,
-}
-
-pub(in crate::repo::mongo) struct MongoPredicate {
-    field: PartField,
-    filter: bson::Bson,
+pub(in crate::repo::mongo) trait IntoFilter {
+    fn into_filter(self) -> Result<Filter, FilterError>;
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(in crate::repo::mongo) enum PartField {
+pub(crate) enum PartField {
     Id,
     Name,
     Category,
@@ -43,20 +18,8 @@ pub(in crate::repo::mongo) enum PartField {
     Tags,
 }
 
-#[derive(Debug, Clone, Copy)]
-enum MongoOperator {
-    In,
-    All,
-}
-
-impl PartFilterDocument {
-    pub(in crate::repo::mongo) fn into_inner(self) -> bson::Document {
-        self.inner
-    }
-}
-
-impl PartField {
-    fn path(self) -> &'static str {
+impl Field for PartField {
+    fn path(&self) -> &'static str {
         match self {
             Self::Id => "_id",
             Self::Name => "name",
@@ -67,127 +30,260 @@ impl PartField {
     }
 }
 
-impl MongoOperator {
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::In => "$in",
-            Self::All => "$all",
-        }
-    }
-
-    fn into_filter(self, values: Vec<bson::Bson>) -> bson::Bson {
-        bson::doc! { self.as_str(): values }.into()
-    }
-}
-
-impl FromIterator<MongoPredicate> for PartFilterDocument {
-    fn from_iter<T>(predicates: T) -> Self
-    where
-        T: IntoIterator<Item = MongoPredicate>,
-    {
-        let inner = predicates
-            .into_iter()
-            .map(|predicate| (predicate.field.path().to_owned(), predicate.filter))
-            .collect();
-
-        Self { inner }
-    }
-}
-
-impl IntoMongoValue for String {
-    fn into_mongo_value(self) -> bson::Bson {
-        bson::Bson::String(self)
-    }
-}
-
-impl IntoMongoValue for Name {
-    fn into_mongo_value(self) -> bson::Bson {
+impl IntoBson for Name {
+    fn into_bson(self) -> bson::Bson {
         bson::Bson::String(self.into())
     }
 }
 
-impl IntoMongoValue for Tag {
-    fn into_mongo_value(self) -> bson::Bson {
+impl IntoBson for Tag {
+    fn into_bson(self) -> bson::Bson {
         bson::Bson::String(self.into())
     }
 }
 
-impl IntoMongoValue for CountryCode {
-    fn into_mongo_value(self) -> bson::Bson {
+impl IntoBson for CountryCode {
+    fn into_bson(self) -> bson::Bson {
         bson::Bson::String(self.into())
     }
 }
 
-impl IntoMongoValue for PartId {
-    fn into_mongo_value(self) -> bson::Bson {
+impl IntoBson for PartId {
+    fn into_bson(self) -> bson::Bson {
         bson::Bson::String(self.into())
     }
 }
 
-impl IntoMongoValue for PartCategory {
-    fn into_mongo_value(self) -> bson::Bson {
+impl IntoBson for PartCategory {
+    fn into_bson(self) -> bson::Bson {
         bson::Bson::String(self.to_string())
     }
 }
 
-impl PartFilterSpec for PartIds {
-    const FIELD: PartField = PartField::Id;
-    const OPERATOR: MongoOperator = MongoOperator::In;
+impl ArrayPredicate for PartIds {
+    type Field = PartField;
+
+    const FIELD: Self::Field = PartField::Id;
+    const OPERATOR: ArrayOp = ArrayOp::In;
 }
 
-impl PartFilterSpec for Names {
-    const FIELD: PartField = PartField::Name;
-    const OPERATOR: MongoOperator = MongoOperator::In;
+impl ArrayPredicate for Names {
+    type Field = PartField;
+
+    const FIELD: Self::Field = PartField::Name;
+    const OPERATOR: ArrayOp = ArrayOp::In;
 }
 
-impl PartFilterSpec for PartCategories {
-    const FIELD: PartField = PartField::Category;
-    const OPERATOR: MongoOperator = MongoOperator::In;
+impl ArrayPredicate for PartCategories {
+    type Field = PartField;
+
+    const FIELD: Self::Field = PartField::Category;
+    const OPERATOR: ArrayOp = ArrayOp::In;
 }
 
-impl PartFilterSpec for CountryCodes {
-    const FIELD: PartField = PartField::ManufacturerCountry;
-    const OPERATOR: MongoOperator = MongoOperator::In;
+impl ArrayPredicate for CountryCodes {
+    type Field = PartField;
+
+    const FIELD: Self::Field = PartField::ManufacturerCountry;
+    const OPERATOR: ArrayOp = ArrayOp::In;
 }
 
-impl PartFilterSpec for Tags {
-    const FIELD: PartField = PartField::Tags;
-    const OPERATOR: MongoOperator = MongoOperator::All;
+impl ArrayPredicate for Tags {
+    type Field = PartField;
+
+    const FIELD: Self::Field = PartField::Tags;
+    const OPERATOR: ArrayOp = ArrayOp::All;
 }
 
-impl<T> IntoMongoPredicate for T
-where
-    T: PartFilterSpec,
-    T::Item: IntoMongoValue,
-{
-    fn into_mongo_predicate(self) -> Option<MongoPredicate> {
-        let values = self
-            .into_iter()
-            .map(IntoMongoValue::into_mongo_value)
-            .collect::<Vec<_>>();
+impl IntoFilter for ListPartsQuery {
+    fn into_filter(self) -> Result<Filter, FilterError> {
+        let predicates = [
+            self.ids.into_predicate(),
+            self.names.into_predicate(),
+            self.categories.into_predicate(),
+            self.manufacturer_countries.into_predicate(),
+            self.tags.into_predicate(),
+        ]
+        .into_iter()
+        .flatten();
 
-        if values.is_empty() {
-            return None;
-        }
-
-        Some(MongoPredicate {
-            field: T::FIELD,
-            filter: T::OPERATOR.into_filter(values),
-        })
+        Filter::try_from_predicates(predicates)
     }
 }
 
-impl IntoMongoFilter for ListPartsQuery {
-    fn into_mongo_filter(self) -> PartFilterDocument {
-        [
-            self.ids.into_mongo_predicate(),
-            self.names.into_mongo_predicate(),
-            self.categories.into_mongo_predicate(),
-            self.manufacturer_countries.into_mongo_predicate(),
-            self.tags.into_mongo_predicate(),
-        ]
-        .into_iter()
-        .flatten()
-        .collect()
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const RAW_PART_ID: &str = "11111111-1111-4111-8111-111111111111";
+
+    #[test]
+    fn empty_list_parts_query_converts_to_empty_filter() {
+        let filter = ListPartsQuery::default()
+            .into_filter()
+            .unwrap()
+            .into_inner();
+
+        assert_eq!(filter, bson::Document::new());
+    }
+
+    #[test]
+    fn list_parts_query_converts_ids_to_id_in_filter() {
+        let filter = ListPartsQuery {
+            ids: PartIds::try_from(vec![RAW_PART_ID.to_string()]).unwrap(),
+            ..ListPartsQuery::default()
+        }
+        .into_filter()
+        .unwrap()
+        .into_inner();
+
+        assert_eq!(
+            filter,
+            bson::doc! {
+                "_id": { "$in": [RAW_PART_ID] },
+            }
+        );
+    }
+
+    #[test]
+    fn list_parts_query_converts_names_to_name_in_filter() {
+        let filter = ListPartsQuery {
+            names: Names::from(vec!["Main engine".to_string()]),
+            ..ListPartsQuery::default()
+        }
+        .into_filter()
+        .unwrap()
+        .into_inner();
+
+        assert_eq!(
+            filter,
+            bson::doc! {
+                "name": { "$in": ["Main engine"] },
+            }
+        );
+    }
+
+    #[test]
+    fn list_parts_query_converts_categories_to_category_in_filter() {
+        let filter = ListPartsQuery {
+            categories: [PartCategory::Engine].into_iter().collect(),
+            ..ListPartsQuery::default()
+        }
+        .into_filter()
+        .unwrap()
+        .into_inner();
+
+        assert_eq!(
+            filter,
+            bson::doc! {
+                "category": { "$in": ["ENGINE"] },
+            }
+        );
+    }
+
+    #[test]
+    fn list_parts_query_converts_manufacturer_countries_to_country_in_filter() {
+        let filter = ListPartsQuery {
+            manufacturer_countries: CountryCodes::from(vec!["US".to_string()]),
+            ..ListPartsQuery::default()
+        }
+        .into_filter()
+        .unwrap()
+        .into_inner();
+
+        assert_eq!(
+            filter,
+            bson::doc! {
+                "manufacturer.country": { "$in": ["US"] },
+            }
+        );
+    }
+
+    #[test]
+    fn list_parts_query_converts_tags_to_tags_all_filter() {
+        let filter = ListPartsQuery {
+            tags: Tags::from(vec!["critical".to_string(), "engine".to_string()]),
+            ..ListPartsQuery::default()
+        }
+        .into_filter()
+        .unwrap()
+        .into_inner();
+
+        assert_field_array_contains(
+            &filter,
+            "tags",
+            "$all",
+            &[
+                bson::Bson::String("critical".to_string()),
+                bson::Bson::String("engine".to_string()),
+            ],
+        );
+    }
+
+    #[test]
+    fn list_parts_query_converts_all_filters() {
+        let filter = ListPartsQuery {
+            ids: PartIds::try_from(vec![RAW_PART_ID.to_string()]).unwrap(),
+            names: Names::from(vec!["Main engine".to_string()]),
+            categories: [PartCategory::Engine].into_iter().collect(),
+            manufacturer_countries: CountryCodes::from(vec!["US".to_string()]),
+            tags: Tags::from(vec!["critical".to_string(), "engine".to_string()]),
+        }
+        .into_filter()
+        .unwrap()
+        .into_inner();
+
+        assert_field_array_contains(
+            &filter,
+            "_id",
+            "$in",
+            &[bson::Bson::String(RAW_PART_ID.to_string())],
+        );
+        assert_field_array_contains(
+            &filter,
+            "name",
+            "$in",
+            &[bson::Bson::String("Main engine".to_string())],
+        );
+        assert_field_array_contains(
+            &filter,
+            "category",
+            "$in",
+            &[bson::Bson::String("ENGINE".to_string())],
+        );
+        assert_field_array_contains(
+            &filter,
+            "manufacturer.country",
+            "$in",
+            &[bson::Bson::String("US".to_string())],
+        );
+        assert_field_array_contains(
+            &filter,
+            "tags",
+            "$all",
+            &[
+                bson::Bson::String("critical".to_string()),
+                bson::Bson::String("engine".to_string()),
+            ],
+        );
+    }
+
+    fn assert_field_array_contains(
+        filter: &bson::Document,
+        field: &str,
+        operator: &str,
+        expected_values: &[bson::Bson],
+    ) {
+        let values = filter
+            .get_document(field)
+            .unwrap()
+            .get_array(operator)
+            .unwrap();
+
+        assert_eq!(values.len(), expected_values.len());
+
+        for expected_value in expected_values {
+            assert!(values.contains(expected_value));
+        }
     }
 }

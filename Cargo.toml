@@ -1,6 +1,10 @@
 [workspace]
 resolver = "3"
-members = ["services/inventory", "services/payment"]
+members = [
+    "platform/rust/mongo",
+    "services/inventory",
+    "services/payment",
+]
 
 [workspace.package]
 edition = "2024"
@@ -16,4 +20,5 @@ tonic-build = "0.12"
 prost-types = "0.13"
 mockall = "0.14"
 mongodb = "3"
+platform-mongo = { path = "platform/rust/mongo" }
 serde = { version = "1", features = ["derive"] }
