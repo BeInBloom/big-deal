@@ -42,6 +42,15 @@ impl Names {
     }
 }
 
+impl IntoIterator for Names {
+    type Item = Name;
+    type IntoIter = std::collections::hash_set::IntoIter<Name>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 impl From<Vec<String>> for Names {
     fn from(values: Vec<String>) -> Self {
         Self(values.into_iter().map(Name::from).collect())
@@ -81,6 +90,15 @@ pub(crate) struct PartIds(HashSet<PartId>);
 impl PartIds {
     pub(crate) fn matches(&self, id: &PartId) -> bool {
         self.0.is_empty() || self.0.contains(id)
+    }
+}
+
+impl IntoIterator for PartIds {
+    type Item = PartId;
+    type IntoIter = std::collections::hash_set::IntoIter<PartId>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -124,6 +142,15 @@ pub(crate) struct Tags(HashSet<Tag>);
 impl Tags {
     pub(crate) fn matches(&self, tags: &Tags) -> bool {
         self.0.is_empty() || self.0.is_subset(&tags.0)
+    }
+}
+
+impl IntoIterator for Tags {
+    type Item = Tag;
+    type IntoIter = std::collections::hash_set::IntoIter<Tag>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -223,6 +250,15 @@ impl CountryCodes {
     }
 }
 
+impl IntoIterator for CountryCodes {
+    type Item = CountryCode;
+    type IntoIter = std::collections::hash_set::IntoIter<CountryCode>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 impl From<Vec<String>> for CountryCodes {
     fn from(values: Vec<String>) -> Self {
         Self(values.into_iter().map(CountryCode::from).collect())
@@ -285,6 +321,15 @@ impl FromIterator<PartCategory> for PartCategories {
         T: IntoIterator<Item = PartCategory>,
     {
         Self(iter.into_iter().collect())
+    }
+}
+
+impl IntoIterator for PartCategories {
+    type Item = PartCategory;
+    type IntoIter = std::collections::hash_set::IntoIter<PartCategory>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
