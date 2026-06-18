@@ -1,4 +1,4 @@
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::net::SocketAddr;
 
 use tonic::transport::Server;
 
@@ -6,8 +6,6 @@ use crate::{
     config::models::Config, grpc::payment::PaymentGrpcHandler,
     proto::payment_v1::payment_service_server::PaymentServiceServer,
 };
-
-const ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 50051));
 
 pub(crate) struct App {
     addr: SocketAddr,
