@@ -1,4 +1,4 @@
-package repo
+package maprepo
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func TestMapRepoSaveAndGet(t *testing.T) {
 		},
 	}
 
-	repo := NewMapRepo()
+	repo := New()
 
 	err := repo.Save(ctx, snapshot)
 	require.NoError(t, err)
@@ -47,7 +47,7 @@ func TestMapRepoSaveAndGet(t *testing.T) {
 func TestMapRepoGetReturnsNotFound(t *testing.T) {
 	ctx := context.Background()
 
-	repo := NewMapRepo()
+	repo := New()
 	orderId := models.OrderId(uuid.New())
 
 	_, err := repo.Get(ctx, orderId)
@@ -75,7 +75,7 @@ func TestMapRepoGetReturnsSnapshotClone(t *testing.T) {
 		},
 	}
 
-	repo := NewMapRepo()
+	repo := New()
 
 	err := repo.Save(ctx, snapshot)
 	require.NoError(t, err)

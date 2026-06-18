@@ -13,6 +13,7 @@ vars:
   YQ_VERSION: "v4.45.2"
   GRPCURL_VERSION: "v1.9.3"
   MOCKERY_VERSION: "v3.7.0"
+  BOBGEN_VERSION: "v0.46.0"
 
   BIN_DIR: "{{.ROOT_DIR}}/bin"
   GOLANGCI_LINT: "{{.BIN_DIR}}/golangci-lint"
@@ -33,6 +34,11 @@ vars:
   OPEN_API_ORDER_V1_BUNDLE: "{{.ROOT_DIR}}/shared/openapi/bundles/order-service/v1/openapi.yaml"
   OPEN_API_ORDER_V1_GO_OGEN_CONFIG: "{{.ROOT_DIR}}/tools/openapi/codegen/order-service/v1/go.ogen.yaml"
 
+  ORDER_DIR: "{{.ROOT_DIR}}/services/order"
+  ORDER_COMPOSE: "{{.ORDER_DIR}}/compose.yaml"
+  ORDER_BOBGEN_CONFIG: "{{.ORDER_DIR}}/bobgen.yaml"
+  ORDER_POSTGRES_DSN: "postgres://order:secret@localhost:5432/orders?sslmode=disable"
+
   GENERATED_DIR: "{{.ROOT_DIR}}/generated"
   GENERATED_GO_DIR: "{{.ROOT_DIR}}/generated/go"
   GO_CACHE_DIR: "{{.ROOT_DIR}}/.cache/go-build"
@@ -40,6 +46,27 @@ vars:
   MODULES: assembly inventory order payment platform iam notification
 
 tasks:
+  order:db:up:
+    desc: "Поднимает PostgreSQL для order service"
+    cmds:
+      - docker compose -f "{{.ORDER_COMPOSE}}" up -d order-postgres
+
+  order:migrations:up:
+    desc: "Накатывает миграции order service"
+    deps: [order:db:up]
+    cmds:
+      - docker compose -f "{{.ORDER_COMPOSE}}" build order-migrations
+      - docker compose -f "{{.ORDER_COMPOSE}}" run --rm order-migrations
+
+  order:bobgen:
+    desc: "Генерирует Bob-код по PostgreSQL-схеме order service"
+    deps: [order:migrations:up]
+    dir: "{{.ORDER_DIR}}"
+    env:
+      PSQL_DSN: "{{.ORDER_POSTGRES_DSN}}"
+    cmds:
+      - go run github.com/stephenafamo/bob/gen/bobgen-psql@{{.BOBGEN_VERSION}} -c "{{.ORDER_BOBGEN_CONFIG}}"
+
   rust:check:
     desc: "Проверяет Rust workspace"
     cmds:

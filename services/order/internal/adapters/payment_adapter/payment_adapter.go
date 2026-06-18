@@ -2,17 +2,22 @@ package paymentadapter
 
 import (
 	"context"
+	"time"
 
 	payment "github.com/BeInBloom/big-deal/generated/go/payment/v1"
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
 )
 
 type PaymentAdapter struct {
-	client payment.PaymentServiceClient
+	client  payment.PaymentServiceClient
+	timeout time.Duration
 }
 
-func New(client payment.PaymentServiceClient) *PaymentAdapter {
-	return &PaymentAdapter{client: client}
+func New(client payment.PaymentServiceClient, timeout time.Duration) *PaymentAdapter {
+	return &PaymentAdapter{
+		client:  client,
+		timeout: timeout,
+	}
 }
 
 func (a *PaymentAdapter) PayOrder(
@@ -21,6 +26,9 @@ func (a *PaymentAdapter) PayOrder(
 	orderId models.OrderId,
 	method models.PaymentMethod,
 ) (models.TransactionId, error) {
+	ctx, cancel := context.WithTimeout(ctx, a.timeout)
+	defer cancel()
+
 	req := buildReq(userId, orderId, method)
 
 	res, err := a.client.PayOrder(ctx, req)

@@ -1,0 +1,23 @@
+no_tests: true
+type_system: github.com/aarondl/opt
+enum_format: screaming_snake_case
+
+psql:
+  driver: github.com/jackc/pgx/v5/stdlib
+  schemas:
+    - public
+  uuid_pkg: google
+  except:
+    goose_db_version:
+
+plugins:
+  dbinfo:
+    destination: internal/repo/psql/gen/dbinfo
+  enums:
+    destination: internal/repo/psql/gen/enums
+  models:
+    destination: internal/repo/psql/gen/models
+  factory:
+    destination: internal/repo/psql/gen/factory
+  dberrors:
+    destination: internal/repo/psql/gen/dberrors

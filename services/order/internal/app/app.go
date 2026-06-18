@@ -8,29 +8,24 @@ import (
 	"time"
 
 	"github.com/BeInBloom/big-deal/services/order/internal/builder"
+	"github.com/BeInBloom/big-deal/services/order/internal/config"
 	"golang.org/x/sync/errgroup"
 )
 
-const (
-	serverAddr      = ":8081"
-	timeout         = time.Second * 5
-	shutdownTimeout = time.Second * 2
-)
-
 type App struct {
-	server *http.Server
+	server          *http.Server
+	shutdownTimeout time.Duration
 }
 
-func New() *App {
-	orderHandlers, err := builder.Build()
+func New(cfg config.Config) *App {
+	server, err := builder.Build(cfg)
 	if err != nil {
 		panic(err)
 	}
 
-	server := buildHttpServer(orderHandlers)
-
 	return &App{
-		server: server,
+		server:          server,
+		shutdownTimeout: cfg.HTTP().ShutdownTimeout(),
 	}
 }
 
@@ -64,7 +59,7 @@ func (a *App) Run(ctx context.Context) error {
 		log.Println("order service stopping")
 
 		shutdownCtx, cancel := context.WithTimeout(
-			context.Background(), shutdownTimeout,
+			context.Background(), a.shutdownTimeout,
 		)
 		defer cancel()
 

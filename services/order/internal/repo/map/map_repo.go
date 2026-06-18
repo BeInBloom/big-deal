@@ -1,4 +1,4 @@
-package repo
+package maprepo
 
 import (
 	"context"
@@ -13,7 +13,7 @@ type MapRepo struct {
 	orders map[models.OrderId]models.OrderSnapshot
 }
 
-func NewMapRepo() *MapRepo {
+func New() *MapRepo {
 	return &MapRepo{
 		orders: make(map[models.OrderId]models.OrderSnapshot),
 	}
