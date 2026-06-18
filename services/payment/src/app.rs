@@ -3,7 +3,7 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use tonic::transport::Server;
 
 use crate::{
-    grpc::payment::PaymentGrpcHandler,
+    config::models::Config, grpc::payment::PaymentGrpcHandler,
     proto::payment_v1::payment_service_server::PaymentServiceServer,
 };
 
@@ -15,9 +15,9 @@ pub(crate) struct App {
 }
 
 impl App {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(config: Config) -> Self {
         Self {
-            addr: ADDR,
+            addr: config.grpc_config.addr,
             payment: PaymentGrpcHandler::new(),
         }
     }
