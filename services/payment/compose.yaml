@@ -1,0 +1,7 @@
+services:
+  payment:
+    build:
+      context: ../..
+      dockerfile: services/payment/Dockerfile
+    ports:
+      - "50053:50051"
