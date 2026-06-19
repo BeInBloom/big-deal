@@ -2,11 +2,11 @@ use std::net::SocketAddr;
 
 use crate::config::error::ConfigError;
 
-pub(crate) struct RawConfig {
+pub(in crate::config) struct RawConfig {
     pub(crate) raw_grpc_config: RawGrpcConfig,
 }
 
-pub(crate) struct RawGrpcConfig {
+pub(in crate::config) struct RawGrpcConfig {
     pub(crate) addr: String,
 }
 

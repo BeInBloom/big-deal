@@ -71,12 +71,10 @@ if (!collectionNames.includes("parts")) {
   });
 }
 
-db.parts.createIndexes([
-  { key: { name: 1 }, name: "parts_name_idx" },
-  { key: { category: 1 }, name: "parts_category_idx" },
-  {
-    key: { "manufacturer.country": 1 },
-    name: "parts_manufacturer_country_idx",
-  },
-  { key: { tags: 1 }, name: "parts_tags_idx" },
-]);
+db.parts.createIndex({ name: 1 }, { name: "parts_name_idx" });
+db.parts.createIndex({ category: 1 }, { name: "parts_category_idx" });
+db.parts.createIndex(
+  { "manufacturer.country": 1 },
+  { name: "parts_manufacturer_country_idx" },
+);
+db.parts.createIndex({ tags: 1 }, { name: "parts_tags_idx" });

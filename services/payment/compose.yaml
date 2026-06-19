@@ -3,5 +3,7 @@ services:
     build:
       context: ../..
       dockerfile: services/payment/Dockerfile
+    env_file:
+      - .env
     ports:
-      - "50053:50051"
+      - "${PAYMENT_GRPC_HOST_PORT}:50051"

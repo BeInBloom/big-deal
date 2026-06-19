@@ -14,12 +14,12 @@ COPY platform ./platform
 COPY services ./services
 COPY shared ./shared
 
-RUN cargo build --release -p payment
+RUN cargo build --release -p inventory
 
 FROM ${RUNTIME_IMAGE}
 
-COPY --from=build /src/target/release/payment /usr/local/bin/payment
+COPY --from=build /src/target/release/inventory /usr/local/bin/inventory
 
-EXPOSE 50051
+EXPOSE 50052
 
-ENTRYPOINT ["payment"]
+ENTRYPOINT ["inventory"]

@@ -1,12 +1,10 @@
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::net::SocketAddr;
 
 use tonic::transport::Server;
 
 use crate::proto::inventory_v1::inventory_service_server::{
     InventoryService, InventoryServiceServer,
 };
-
-const ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 50052));
 
 pub(crate) struct App<T> {
     addr: SocketAddr,
@@ -17,9 +15,9 @@ impl<T> App<T>
 where
     T: InventoryService,
 {
-    pub(crate) fn new(service: T) -> Self {
+    pub(crate) fn new(addr: SocketAddr, service: T) -> Self {
         Self {
-            addr: ADDR,
+            addr,
             inventory: service,
         }
     }

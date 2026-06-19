@@ -1,0 +1,39 @@
+services:
+  inventory-mongo:
+    image: mongo:8
+    ports:
+      - "${INVENTORY_MONGO_HOST_PORT}:27017"
+    volumes:
+      - inventory-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  inventory-migrations:
+    image: mongo:8
+    depends_on:
+      inventory-mongo:
+        condition: service_healthy
+    volumes:
+      - ./migration/mongo:/migrations:ro
+    command:
+      - mongosh
+      - "${INVENTORY_REPO_MONGO_URL}/${INVENTORY_REPO_MONGO_DATABASE}"
+      - /migrations/001_init_parts.js
+
+  inventory:
+    build:
+      context: ../..
+      dockerfile: services/inventory/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      inventory-migrations:
+        condition: service_completed_successfully
+    ports:
+      - "${INVENTORY_GRPC_HOST_PORT}:50052"
+
+volumes:
+  inventory-mongo-data:

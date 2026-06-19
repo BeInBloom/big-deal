@@ -1,9 +1,8 @@
-use crate::{
-    app::App, grpc::inventory::InventoryGrpcHandler, repo::map::map_repo::MapPartRepo,
-    service::inventory::InventoryManager,
-};
+use crate::config::from_env::config_from_env;
 
 mod app;
+mod config;
+mod di;
 mod domain;
 mod grpc;
 mod proto;
@@ -12,10 +11,6 @@ mod service;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let repo = MapPartRepo::new();
-    let use_cases = InventoryManager::new(repo);
-    let service = InventoryGrpcHandler::new(use_cases);
-    let app = App::new(service);
-    app.run().await?;
-    Ok(())
+    let config = config_from_env()?;
+    di::run(config).await
 }
