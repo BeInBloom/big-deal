@@ -20,6 +20,7 @@ impl FieldFilter {
     }
 
     pub(crate) fn merge(&mut self, condition: Condition) -> Result<(), FilterError> {
+        //TODO: переписать эту поеботу
         match self
             .conditions
             .iter_mut()
