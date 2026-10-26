@@ -24,68 +24,71 @@ import (
 
 const psqlConnectTimeout = time.Second * 1
 
+type builder struct {
+	cfg     config.Config
+	closers []func() error
+}
+
 func Build(cfg config.Config) (*http.Server, func() error, error) {
-	var resources closers
+	b := &builder{cfg: cfg}
 
-	invConn, err := grpc.NewClient(
-		cfg.Inventory().GRPCAddr(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	server, err := b.httpServer()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Join(err, b.close())
 	}
-	resources.add(invConn.Close)
 
-	pConn, err := grpc.NewClient(
-		cfg.Payment().GRPCAddr(),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	return server, b.close, nil
+}
+
+func (b *builder) httpServer() (*http.Server, error) {
+	orderService, err := b.orderService()
 	if err != nil {
-		return nil, nil, errors.Join(err, resources.close())
+		return nil, err
 	}
-	resources.add(pConn.Close)
 
-	orderRepo, closeRepo, err := orderRepoFactory(cfg.Repo())
+	handler, err := orders.NewServer(handlers.New(orderService))
 	if err != nil {
-		return nil, nil, errors.Join(err, resources.close())
-	}
-	resources.add(closeRepo)
-
-	parts := partsadapter.New(
-		inventory.NewInventoryServiceClient(invConn),
-		cfg.Inventory().Timeout(),
-	)
-	payments := paymentadapter.New(
-		payment.NewPaymentServiceClient(pConn),
-		cfg.Payment().Timeout(),
-	)
-	orderService := services.New(orderRepo, parts, payments)
-	orderHandlers := handlers.New(orderService)
-
-	orderServer, err := orders.NewServer(orderHandlers)
-	if err != nil {
-		return nil, nil, errors.Join(err, resources.close())
+		return nil, err
 	}
 
 	return &http.Server{
-		Addr:              cfg.HTTP().Addr(),
-		Handler:           orderServer,
-		ReadHeaderTimeout: cfg.HTTP().ReadHeaderTimeout(),
-	}, resources.close, nil
+		Addr:              b.cfg.HTTP().Addr(),
+		Handler:           handler,
+		ReadHeaderTimeout: b.cfg.HTTP().ReadHeaderTimeout(),
+	}, nil
 }
 
-func orderRepoFactory(cfg config.Repo) (services.OrderRepo, func() error, error) {
-	if cfg.IsInMemory() {
-		return maprepo.New(), func() error { return nil }, nil
+func (b *builder) orderService() (*services.OrderService, error) {
+	repo, err := b.orderRepo()
+	if err != nil {
+		return nil, err
 	}
 
-	return psqlRepo(cfg)
+	parts, err := b.partService()
+	if err != nil {
+		return nil, err
+	}
+
+	payments, err := b.paymentService()
+	if err != nil {
+		return nil, err
+	}
+
+	return services.New(repo, parts, payments), nil
 }
 
-func psqlRepo(cfg config.Repo) (services.OrderRepo, func() error, error) {
-	postgresURL, ok := cfg.PostgresURL()
+func (b *builder) orderRepo() (services.OrderRepo, error) {
+	if b.cfg.Repo().IsInMemory() {
+		return maprepo.New(), nil
+	}
+
+	return b.psqlRepo()
+}
+
+func (b *builder) psqlRepo() (services.OrderRepo, error) {
+	postgresURL, ok := b.cfg.Repo().PostgresURL()
 	if !ok {
-		return nil, nil, fmt.Errorf("postgres url is required")
+		return nil, fmt.Errorf("postgres url is required")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), psqlConnectTimeout)
@@ -93,33 +96,65 @@ func psqlRepo(cfg config.Repo) (services.OrderRepo, func() error, error) {
 
 	pool, err := pgxpool.New(ctx, postgresURL.String())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	if err := pool.Ping(ctx); err != nil {
-		pool.Close()
-		return nil, nil, err
-	}
-
-	closePool := func() error {
+	b.onClose(func() error {
 		pool.Close()
 		return nil
+	})
+
+	if err := pool.Ping(ctx); err != nil {
+		return nil, err
 	}
 
-	return psql.New(pool), closePool, nil
+	return psql.New(pool), nil
 }
 
-type closers []func() error
+func (b *builder) partService() (services.PartService, error) {
+	conn, err := b.grpcConn(b.cfg.Inventory().GRPCAddr())
+	if err != nil {
+		return nil, err
+	}
 
-func (c *closers) add(closeFn func() error) {
-	*c = append(*c, closeFn)
+	return partsadapter.New(
+		inventory.NewInventoryServiceClient(conn),
+		b.cfg.Inventory().Timeout(),
+	), nil
 }
 
-func (c closers) close() error {
-	errs := make([]error, 0, len(c))
+func (b *builder) paymentService() (services.PaymentService, error) {
+	conn, err := b.grpcConn(b.cfg.Payment().GRPCAddr())
+	if err != nil {
+		return nil, err
+	}
 
-	for i := len(c) - 1; i >= 0; i-- {
-		errs = append(errs, c[i]())
+	return paymentadapter.New(
+		payment.NewPaymentServiceClient(conn),
+		b.cfg.Payment().Timeout(),
+	), nil
+}
+
+func (b *builder) grpcConn(addr string) (*grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+
+	b.onClose(conn.Close)
+
+	return conn, nil
+}
+
+func (b *builder) onClose(closeFn func() error) {
+	b.closers = append(b.closers, closeFn)
+}
+
+func (b *builder) close() error {
+	errs := make([]error, 0, len(b.closers))
+
+	for i := len(b.closers) - 1; i >= 0; i-- {
+		errs = append(errs, b.closers[i]())
 	}
 
 	return errors.Join(errs...)
