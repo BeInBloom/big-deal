@@ -12,6 +12,7 @@ import (
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
 	"github.com/BeInBloom/big-deal/services/order/internal/services"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib" // registers the pgx driver for goose
 	"github.com/pressly/goose/v3"
@@ -23,6 +24,8 @@ import (
 const (
 	postgresImage = "postgres:17-alpine"
 	migrationsDir = "../../../migrations"
+
+	checkViolationCode = "23514"
 )
 
 // testDB is a single Postgres container shared by all tests in the package.
@@ -76,7 +79,7 @@ func TestRepoCreateKeepsLargePrices(t *testing.T) {
 
 	got, err := r.Get(ctx, order.Id)
 	require.NoError(t, err)
-	require.Equal(t, order.Parts.Price(), got.Parts.Price())
+	require.ElementsMatch(t, order.Parts, got.Parts)
 }
 
 func TestRepoCreateReturnsAlreadyExists(t *testing.T) {
@@ -167,10 +170,12 @@ func TestRepoUpdateRejectsPaidOrderWithoutPayment(t *testing.T) {
 	paid := order
 	paid.Status = models.Paid
 
-	// orders_payment_state_check guards the invariant at the database level.
 	err := r.Update(ctx, paid, models.PendingPayment)
-	require.Error(t, err)
-	require.NotErrorIs(t, err, services.ErrOrderStatusConflict)
+
+	var pgErr *pgconn.PgError
+	require.ErrorAs(t, err, &pgErr)
+	require.Equal(t, checkViolationCode, pgErr.Code)
+	require.Equal(t, "orders_payment_state_check", pgErr.ConstraintName)
 }
 
 func newTestRepo(t *testing.T) *repo {

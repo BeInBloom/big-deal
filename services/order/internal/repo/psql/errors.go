@@ -17,6 +17,8 @@ var (
 )
 
 func intoCreateOrderError(err error) error {
+	// The arguments are reversed on purpose: the bob-generated constraint error
+	// implements Is(*pgconn.PgError), not the other way around.
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && errors.Is(dberrors.OrderErrors.ErrUniqueOrdersPkey, pgErr) {
 		return fmt.Errorf("%w: %w", services.ErrOrderAlreadyExists, err)

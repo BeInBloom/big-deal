@@ -221,6 +221,18 @@ func TestRawTryIntoConfigRequiresPostgresURLForPostgresRepo(t *testing.T) {
 	require.ErrorIs(t, err, errPostgresURLRequired)
 }
 
+func TestRawTryIntoConfigRejectsPostgresURLForHashMapRepo(t *testing.T) {
+	_, err := raw{
+		repo: rawRepo{
+			kind:        "hash_map",
+			postgresURL: "postgres://order:secret@order-db:5432/orders",
+		},
+	}.tryIntoConfig()
+
+	requireFieldError(t, err, envRepoPostgresURL)
+	require.ErrorIs(t, err, errPostgresURLUnexpected)
+}
+
 func mapLookup(values map[string]string) func(string) (string, bool) {
 	return func(key string) (string, bool) {
 		value, ok := values[key]

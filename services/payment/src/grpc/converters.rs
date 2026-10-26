@@ -80,8 +80,8 @@ mod tests {
 
         let command = PayOrderCommand::try_from(req).unwrap();
 
-        assert_eq!(command.user_id.as_uuid(), user_uuid);
-        assert_eq!(command.order_id.as_uuid(), order_uuid);
+        assert_eq!(command.user_id, user_uuid.to_string().parse().unwrap());
+        assert_eq!(command.order_id, order_uuid.to_string().parse().unwrap());
         assert_eq!(command.payment_method, PaymentMethod::Card);
     }
 

@@ -41,7 +41,7 @@ func TestMapRepoCreateAndGet(t *testing.T) {
 	require.Equal(t, snapshot.Id, got.Id)
 	require.Equal(t, snapshot.UserId, got.UserId)
 	require.Equal(t, snapshot.Status, got.Status)
-	require.Equal(t, snapshot.Parts.Price(), got.Parts.Price())
+	require.Equal(t, snapshot.Parts, got.Parts)
 }
 
 func TestMapRepoGetReturnsNotFound(t *testing.T) {

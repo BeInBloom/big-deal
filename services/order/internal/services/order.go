@@ -8,21 +8,30 @@ import (
 	"github.com/google/uuid"
 )
 
+// Errors returned by OrderService. ErrOrderNotFound from OrderRepo
+// is passed through as is.
 var (
-	ErrOrderNotFound         = errors.New("order not found")
 	ErrOrderPartsRequired    = errors.New("order parts are required")
 	ErrOrderPartsDuplicated  = errors.New("order parts are duplicated")
 	ErrOrderPartsNotFound    = errors.New("order parts not found")
 	ErrOrderCannotBePaid     = errors.New("order cannot be paid")
 	ErrOrderCannotBeCanceled = errors.New("order cannot be canceled")
-	ErrOrderStatusConflict   = errors.New("order status changed concurrently")
-	ErrOrderAlreadyExists    = errors.New("order already exists")
 	ErrInvalidPaymentMethod  = errors.New("invalid payment method")
 )
 
-// ErrPaymentConflict is returned by PaymentService when the order already
-// has a payment with different parameters.
-var ErrPaymentConflict = errors.New("payment conflicts with existing payment")
+// Errors of the OrderRepo contract.
+var (
+	ErrOrderNotFound       = errors.New("order not found")
+	ErrOrderAlreadyExists  = errors.New("order already exists")
+	ErrOrderStatusConflict = errors.New("order status changed concurrently")
+)
+
+// Errors of the PaymentService contract.
+var (
+	// ErrPaymentConflict means the order already has a payment
+	// with different parameters.
+	ErrPaymentConflict = errors.New("payment conflicts with existing payment")
+)
 
 type OrderRepo interface {
 	// Get returns ErrOrderNotFound if the order does not exist.
@@ -112,6 +121,10 @@ func (s *OrderService) CreateOrder(
 	}
 
 	order := models.NewPendingOrder(s.newId(), userId, parts)
+	if _, err := order.Price(); err != nil {
+		return models.PendingOrder{}, err
+	}
+
 	if err := s.repo.Create(ctx, order.Snapshot()); err != nil {
 		return models.PendingOrder{}, err
 	}
@@ -162,10 +175,31 @@ func (s *OrderService) PayOrder(
 	paidOrder := order.Pay(method, transactionId)
 	err = s.repo.Update(ctx, paidOrder.Snapshot(), order.Status())
 	if errors.Is(err, ErrOrderStatusConflict) {
-		return models.PaidOrder{}, ErrOrderCannotBePaid
+		return s.paidWithTransaction(ctx, id, transactionId)
 	}
 	if err != nil {
 		return models.PaidOrder{}, err
+	}
+
+	return paidOrder, nil
+}
+
+// paidWithTransaction resolves a lost race with a concurrent PayOrder.
+// Payments are idempotent, so the winner may have stored this very
+// transaction: then the order is paid and the duplicate request succeeds.
+func (s *OrderService) paidWithTransaction(
+	ctx context.Context,
+	id models.OrderId,
+	transactionId models.TransactionId,
+) (models.PaidOrder, error) {
+	snapshot, err := s.repo.Get(ctx, id)
+	if err != nil {
+		return models.PaidOrder{}, err
+	}
+
+	paidOrder, err := snapshot.TryPaidOrder()
+	if err != nil || paidOrder.TransactionId() != transactionId {
+		return models.PaidOrder{}, ErrOrderCannotBePaid
 	}
 
 	return paidOrder, nil

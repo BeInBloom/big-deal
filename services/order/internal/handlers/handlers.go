@@ -49,9 +49,14 @@ func (h *Handlers) OrderServiceCreateOrder(
 		return mapCreateOrderError(err), nil
 	}
 
+	price, err := order.Price()
+	if err != nil {
+		return newCreateOrderInternalServerError(), nil
+	}
+
 	return &orders.CreateOrderResponse{
 		OrderUUID:  uuid.UUID(order.Id()),
-		TotalPrice: order.Price().Major(),
+		TotalPrice: price.Major(),
 	}, nil
 }
 

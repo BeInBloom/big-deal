@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
@@ -44,7 +45,7 @@ func TestOrderServiceCreateOrder(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, orderId, order.Id())
 	require.Equal(t, models.PendingPayment, order.Status())
-	require.Equal(t, models.Money(1500), order.Price())
+	requireOrderPrice(t, order, models.Money(1500))
 }
 
 func TestOrderServiceCreateOrderReturnsPartsError(t *testing.T) {
@@ -141,7 +142,29 @@ func TestOrderServiceCreateOrderKeepsRequestedPartsOrder(t *testing.T) {
 
 	order, err := deps.service.CreateOrder(ctx, userId, []models.PartId{firstId, secondId})
 	require.NoError(t, err)
-	require.Equal(t, models.Money(2200), order.Price())
+	requireOrderPrice(t, order, models.Money(2200))
+}
+
+func TestOrderServiceCreateOrderRejectsTotalOverflow(t *testing.T) {
+	ctx := context.Background()
+
+	firstId := models.PartId(uuid.New())
+	secondId := models.PartId(uuid.New())
+	partIds := []models.PartId{firstId, secondId}
+
+	deps := newOrderServiceTestDeps(t)
+
+	deps.partService.EXPECT().
+		ListParts(ctx, partIds).
+		Return(models.Parts{
+			{Id: firstId, Price: math.MaxInt64},
+			{Id: secondId, Price: 1},
+		}, nil).
+		Once()
+
+	order, err := deps.service.CreateOrder(ctx, models.UserId(uuid.New()), partIds)
+	require.ErrorIs(t, err, models.ErrInvalidMoney)
+	require.Zero(t, order.Id())
 }
 
 func TestOrderServicePayOrderRejectsInvalidPaymentMethod(t *testing.T) {
@@ -372,7 +395,7 @@ func TestOrderServiceGetOrderReturnsOrder(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, orderId, order.Id())
 	require.Equal(t, models.PendingPayment, order.Status())
-	require.Equal(t, models.Money(1500), order.Price())
+	requireOrderPrice(t, order, models.Money(1500))
 }
 
 func TestOrderServiceGetOrderReturnsRepoError(t *testing.T) {
@@ -393,40 +416,86 @@ func TestOrderServiceGetOrderReturnsRepoError(t *testing.T) {
 	require.Nil(t, order)
 }
 
-func TestOrderServicePayOrderReturnsCannotBePaidOnStatusConflict(t *testing.T) {
-	ctx := context.Background()
-
+func TestOrderServicePayOrderResolvesStatusConflict(t *testing.T) {
 	orderId := models.OrderId(uuid.New())
 	userId := models.UserId(uuid.New())
-	partId := models.PartId(uuid.New())
+	parts := newTestParts(models.PartId(uuid.New()))
 	transactionId := models.TransactionId(uuid.New())
-	parts := newTestParts(partId)
 
-	deps := newOrderServiceTestDeps(t)
+	pending := models.OrderSnapshot{
+		Id:     orderId,
+		UserId: userId,
+		Status: models.PendingPayment,
+		Parts:  parts,
+	}
+	paidWith := func(id models.TransactionId) models.OrderSnapshot {
+		return models.OrderSnapshot{
+			Id:            orderId,
+			UserId:        userId,
+			Status:        models.Paid,
+			Parts:         parts,
+			PaymentMethod: models.Some(models.PaymentMethodCARD),
+			TransactionId: models.Some(id),
+		}
+	}
 
-	deps.repo.EXPECT().
-		Get(ctx, orderId).
-		Return(models.OrderSnapshot{
-			Id:     orderId,
-			UserId: userId,
-			Status: models.PendingPayment,
-			Parts:  parts,
-		}, nil).
-		Once()
+	tests := []struct {
+		name    string
+		stored  models.OrderSnapshot
+		wantErr error
+	}{
+		{
+			name:   "concurrent pay stored the same transaction",
+			stored: paidWith(transactionId),
+		},
+		{
+			name:    "concurrent pay stored another transaction",
+			stored:  paidWith(models.TransactionId(uuid.New())),
+			wantErr: ErrOrderCannotBePaid,
+		},
+		{
+			name: "concurrent cancel",
+			stored: models.OrderSnapshot{
+				Id:     orderId,
+				UserId: userId,
+				Status: models.Canceled,
+				Parts:  parts,
+			},
+			wantErr: ErrOrderCannotBePaid,
+		},
+	}
 
-	deps.paymentService.EXPECT().
-		PayOrder(ctx, userId, orderId, models.PaymentMethodCARD).
-		Return(transactionId, nil).
-		Once()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			deps := newOrderServiceTestDeps(t)
 
-	deps.repo.EXPECT().
-		Update(ctx, mock.Anything, models.PendingPayment).
-		Return(ErrOrderStatusConflict).
-		Once()
+			deps.repo.EXPECT().Get(ctx, orderId).Return(pending, nil).Once()
 
-	order, err := deps.service.PayOrder(ctx, orderId, models.PaymentMethodCARD)
-	require.ErrorIs(t, err, ErrOrderCannotBePaid)
-	require.Zero(t, order.Id())
+			deps.paymentService.EXPECT().
+				PayOrder(ctx, userId, orderId, models.PaymentMethodCARD).
+				Return(transactionId, nil).
+				Once()
+
+			deps.repo.EXPECT().
+				Update(ctx, mock.Anything, models.PendingPayment).
+				Return(ErrOrderStatusConflict).
+				Once()
+
+			deps.repo.EXPECT().Get(ctx, orderId).Return(tt.stored, nil).Once()
+
+			order, err := deps.service.PayOrder(ctx, orderId, models.PaymentMethodCARD)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				require.Zero(t, order.Id())
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, orderId, order.Id())
+			require.Equal(t, transactionId, order.TransactionId())
+		})
+	}
 }
 
 func TestOrderServiceCancelOrderReturnsCannotBeCanceledOnStatusConflict(t *testing.T) {
@@ -488,4 +557,12 @@ func newTestParts(partId models.PartId) models.Parts {
 			Price:       1500,
 		},
 	}
+}
+
+func requireOrderPrice(t *testing.T, order models.Order, want models.Money) {
+	t.Helper()
+
+	price, err := order.Price()
+	require.NoError(t, err)
+	require.Equal(t, want, price)
 }

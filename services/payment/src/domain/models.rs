@@ -22,13 +22,6 @@ impl Display for TransactionId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct UserId(Uuid);
 
-#[cfg(test)]
-impl UserId {
-    pub(crate) fn as_uuid(&self) -> Uuid {
-        self.0
-    }
-}
-
 impl TryFrom<&str> for UserId {
     type Error = UserIdError;
 
@@ -53,13 +46,6 @@ impl FromStr for UserId {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct OrderId(Uuid);
-
-#[cfg(test)]
-impl OrderId {
-    pub(crate) fn as_uuid(&self) -> Uuid {
-        self.0
-    }
-}
 
 impl TryFrom<&str> for OrderId {
     type Error = OrderIdError;
@@ -106,7 +92,7 @@ mod tests {
     fn user_id_parses_uuid() {
         let raw_uuid = uuid::Uuid::new_v4().to_string();
         let user_id = UserId::try_from(raw_uuid.as_str()).unwrap();
-        assert_eq!(user_id.as_uuid().to_string(), raw_uuid);
+        assert_eq!(user_id.0.to_string(), raw_uuid);
     }
 
     #[test]
@@ -125,7 +111,7 @@ mod tests {
     fn order_id_parses_uuid() {
         let raw_uuid = uuid::Uuid::new_v4().to_string();
         let order_id = OrderId::try_from(raw_uuid.as_str()).unwrap();
-        assert_eq!(order_id.as_uuid().to_string(), raw_uuid);
+        assert_eq!(order_id.0.to_string(), raw_uuid);
     }
 
     #[test]

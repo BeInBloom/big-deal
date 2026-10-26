@@ -10,6 +10,7 @@ var (
 	errRepoKindRequired            = errors.New("is required")
 	errRepoKindUnknown             = errors.New("must be hash_map or postgres")
 	errPostgresURLRequired         = errors.New("is required for postgres repo")
+	errPostgresURLUnexpected       = errors.New("must be empty for hash_map repo")
 	errPostgresURLSchemeInvalid    = errors.New("scheme must be postgres or postgresql")
 	errPostgresURLDatabaseRequired = errors.New("host and database name are required")
 )

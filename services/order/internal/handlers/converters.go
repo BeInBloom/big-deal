@@ -22,11 +22,16 @@ func toAPIOrder(order models.Order) (*orders.Order, error) {
 		return nil, err
 	}
 
+	price, err := order.Price()
+	if err != nil {
+		return nil, err
+	}
+
 	res := &orders.Order{
 		OrderUUID:  uuid.UUID(snapshot.Id),
 		UserUUID:   uuid.UUID(snapshot.UserId),
 		PartUuids:  toAPIPartIds(snapshot.Parts.Ids()),
-		TotalPrice: order.Price().Major(),
+		TotalPrice: price.Major(),
 		Status:     status,
 	}
 

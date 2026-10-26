@@ -139,6 +139,10 @@ func (r rawPaymentClient) timeoutDuration() (time.Duration, error) {
 func (r rawRepo) tryIntoRepo() (repoConfig, error) {
 	switch kind := repoKind(strings.TrimSpace(r.kind)); kind {
 	case repoKindHashMap:
+		if !isBlank(r.postgresURL) {
+			return repoConfig{}, fmt.Errorf("%s: %w", envRepoPostgresURL, errPostgresURLUnexpected)
+		}
+
 		return repoConfig{kind: kind}, nil
 	case repoKindPostgres:
 		if isBlank(r.postgresURL) {

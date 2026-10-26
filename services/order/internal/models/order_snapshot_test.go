@@ -27,7 +27,7 @@ func TestOrderSnapshotTryPaidOrder(t *testing.T) {
 	require.Equal(t, orderId, order.Id())
 	require.Equal(t, userId, order.UserId())
 	require.Equal(t, Paid, order.Status())
-	require.Equal(t, Money(1500), order.Price())
+	requireOrderPrice(t, order, Money(1500))
 	require.Equal(t, PaymentMethodCARD, order.PaymentMethod())
 	require.Equal(t, transactionId, order.TransactionId())
 }
@@ -99,7 +99,7 @@ func TestOrderSnapshotTryCanceledOrder(t *testing.T) {
 	require.Equal(t, orderId, order.Id())
 	require.Equal(t, userId, order.UserId())
 	require.Equal(t, Canceled, order.Status())
-	require.Equal(t, Money(1500), order.Price())
+	requireOrderPrice(t, order, Money(1500))
 }
 
 func TestOrderSnapshotTryCanceledOrderRejectsPaymentData(t *testing.T) {
@@ -191,4 +191,12 @@ func TestPaymentMethodValid(t *testing.T) {
 
 	require.False(t, PaymentMethodUNKNOWN.Valid())
 	require.False(t, PaymentMethod(100).Valid())
+}
+
+func requireOrderPrice(t *testing.T, order Order, want Money) {
+	t.Helper()
+
+	price, err := order.Price()
+	require.NoError(t, err)
+	require.Equal(t, want, price)
 }

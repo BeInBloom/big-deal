@@ -14,14 +14,17 @@ func (p Parts) Clone() Parts {
 	return slices.Clone(p)
 }
 
-func (p Parts) Price() Money {
+func (p Parts) Price() (Money, error) {
 	var sum Money
 
 	for _, part := range p {
-		sum += part.Price
+		var err error
+		if sum, err = sum.Add(part.Price); err != nil {
+			return 0, err
+		}
 	}
 
-	return sum
+	return sum, nil
 }
 
 func (p Parts) Ids() []PartId {

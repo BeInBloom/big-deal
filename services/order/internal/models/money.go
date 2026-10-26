@@ -9,7 +9,11 @@ var ErrInvalidMoney = errors.New("invalid money amount")
 
 const minorUnitsPerMajor = 100
 
-// Money is an amount in minor currency units (kopecks).
+// maxMoney keeps amounts within the signed 64-bit range used by storage.
+const maxMoney Money = math.MaxInt64
+
+// Money is a non-negative amount in minor currency units (kopecks),
+// at most maxMoney.
 type Money uint64
 
 // MoneyFromMajor converts an amount in major units (12.34) to Money,
@@ -19,12 +23,22 @@ func MoneyFromMajor(amount float64) (Money, error) {
 		return 0, ErrInvalidMoney
 	}
 
+	// float64(maxMoney) rounds up to 2^63, so ">=" rejects everything above maxMoney.
 	minor := math.Round(amount * minorUnitsPerMajor)
-	if minor >= math.MaxUint64 {
+	if minor >= float64(maxMoney) {
 		return 0, ErrInvalidMoney
 	}
 
 	return Money(minor), nil
+}
+
+// Add returns m + other, or ErrInvalidMoney if the sum exceeds maxMoney.
+func (m Money) Add(other Money) (Money, error) {
+	if m > maxMoney || other > maxMoney-m {
+		return 0, ErrInvalidMoney
+	}
+
+	return m + other, nil
 }
 
 // Major returns the amount in major units (12.34).
