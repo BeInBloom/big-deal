@@ -13,11 +13,15 @@ var (
 	ErrOrderPartsNotFound    = errors.New("order parts not found")
 	ErrOrderCannotBePaid     = errors.New("order cannot be paid")
 	ErrOrderCannotBeCanceled = errors.New("order cannot be canceled")
+	ErrOrderStatusConflict   = errors.New("order status changed concurrently")
 )
 
 type OrderRepo interface {
 	Get(ctx context.Context, id models.OrderId) (models.OrderSnapshot, error)
-	Save(ctx context.Context, order models.OrderSnapshot) error
+	Create(ctx context.Context, order models.OrderSnapshot) error
+	// Update persists order only if its stored status is still from,
+	// otherwise it returns ErrOrderStatusConflict.
+	Update(ctx context.Context, order models.OrderSnapshot, from models.OrderStatus) error
 }
 
 type PartService interface {
@@ -25,7 +29,7 @@ type PartService interface {
 }
 
 type PaymentService interface {
-	// TODO: payment adapter must make PayOrder idempotent by orderId.
+	// PayOrder must be idempotent by orderId: a retry returns the same transaction.
 	PayOrder(
 		ctx context.Context,
 		userId models.UserId,
@@ -70,7 +74,12 @@ func (s *OrderService) CancelOrder(
 		return ErrOrderCannotBeCanceled
 	}
 
-	return s.repo.Save(ctx, order.Cancel().Snapshot())
+	err = s.repo.Update(ctx, order.Cancel().Snapshot(), order.Status())
+	if errors.Is(err, ErrOrderStatusConflict) {
+		return ErrOrderCannotBeCanceled
+	}
+
+	return err
 }
 
 func (s *OrderService) CreateOrder(
@@ -84,7 +93,7 @@ func (s *OrderService) CreateOrder(
 	}
 
 	order := models.NewPendingOrder(s.newId(), userId, parts)
-	if err := s.repo.Save(ctx, order.Snapshot()); err != nil {
+	if err := s.repo.Create(ctx, order.Snapshot()); err != nil {
 		return models.PendingOrder{}, err
 	}
 
@@ -125,7 +134,11 @@ func (s *OrderService) PayOrder(
 	}
 
 	paidOrder := order.Pay(method, transactionId)
-	if err := s.repo.Save(ctx, paidOrder.Snapshot()); err != nil {
+	err = s.repo.Update(ctx, paidOrder.Snapshot(), order.Status())
+	if errors.Is(err, ErrOrderStatusConflict) {
+		return models.PaidOrder{}, ErrOrderCannotBePaid
+	}
+	if err != nil {
 		return models.PaidOrder{}, err
 	}
 

@@ -120,6 +120,26 @@ func intoOrderSetter(
 	}, nil
 }
 
+func intoOrderStateSetter(
+	order models.OrderSnapshot,
+) (*dbmodels.OrderSetter, error) {
+	status, err := orderStatusToDB(order.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	paymentMethod, err := nullablePaymentMethod(order.PaymentMethod)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dbmodels.OrderSetter{
+		Status:        omit.From(status),
+		PaymentMethod: paymentMethod,
+		TransactionID: nullableTransactionID(order.TransactionId),
+	}, nil
+}
+
 func intoOrderPartSetters(
 	order models.OrderSnapshot,
 ) ([]*dbmodels.OrderPartSetter, error) {

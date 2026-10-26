@@ -13,7 +13,6 @@ import (
 	paymentadapter "github.com/BeInBloom/big-deal/services/order/internal/adapters/payment_adapter"
 	"github.com/BeInBloom/big-deal/services/order/internal/config"
 	"github.com/BeInBloom/big-deal/services/order/internal/handlers"
-	"github.com/BeInBloom/big-deal/services/order/internal/models"
 	maprepo "github.com/BeInBloom/big-deal/services/order/internal/repo/map"
 	"github.com/BeInBloom/big-deal/services/order/internal/repo/psql"
 	"github.com/BeInBloom/big-deal/services/order/internal/services"
@@ -23,11 +22,6 @@ import (
 )
 
 const psqlConnectTimeout = time.Second * 1
-
-type OrderRepo interface {
-	Get(ctx context.Context, id models.OrderId) (models.OrderSnapshot, error)
-	Save(ctx context.Context, order models.OrderSnapshot) error
-}
 
 func Build(cfg config.Config) (*http.Server, error) {
 	invConn, err := grpc.NewClient(
@@ -74,7 +68,7 @@ func Build(cfg config.Config) (*http.Server, error) {
 	}, nil
 }
 
-func orderRepoFactory(cfg config.Repo) (OrderRepo, error) {
+func orderRepoFactory(cfg config.Repo) (services.OrderRepo, error) {
 	if cfg.IsInMemory() {
 		return maprepo.New(), nil
 	}
@@ -82,7 +76,7 @@ func orderRepoFactory(cfg config.Repo) (OrderRepo, error) {
 	return psqlRepo(cfg)
 }
 
-func psqlRepo(cfg config.Repo) (OrderRepo, error) {
+func psqlRepo(cfg config.Repo) (services.OrderRepo, error) {
 	postgresURL, ok := cfg.PostgresURL()
 	if !ok {
 		return nil, fmt.Errorf("postgres url is required")

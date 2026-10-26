@@ -11,8 +11,7 @@ import (
 func main() {
 	cfg, err := config.LoadFromEnv()
 	if err != nil {
-		log.Println("wrong config: %s", err.Error())
-		return
+		log.Fatalf("wrong config: %s", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -20,7 +19,8 @@ func main() {
 
 	app := app.New(cfg)
 	if err := app.Run(ctx); err != nil {
-		log.Println("something wrong")
+		cancel()
+		log.Fatalf("server stopped with error: %s", err)
 	}
 
 	log.Println("server stopped")

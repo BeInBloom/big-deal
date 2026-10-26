@@ -5,8 +5,11 @@ import (
 
 	payment "github.com/BeInBloom/big-deal/generated/go/payment/v1"
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
+	"github.com/BeInBloom/big-deal/services/order/internal/services"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestRawTransactionIdToTransactionId(t *testing.T) {
@@ -63,4 +66,18 @@ func TestPaymentMethodToPaymentMethod(t *testing.T) {
 			require.Equal(t, tt.want, paymentMethodToPaymentMethod(tt.in))
 		})
 	}
+}
+
+func TestPayOrderErrorToErrorMapsAlreadyExists(t *testing.T) {
+	err := payOrderErrorToError(status.Error(codes.AlreadyExists, "already paid"))
+
+	require.ErrorIs(t, err, services.ErrOrderCannotBePaid)
+}
+
+func TestPayOrderErrorToErrorKeepsOtherErrors(t *testing.T) {
+	rawErr := status.Error(codes.Unavailable, "payment unavailable")
+
+	err := payOrderErrorToError(rawErr)
+
+	require.Equal(t, rawErr, err)
 }

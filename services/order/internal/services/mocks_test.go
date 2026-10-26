@@ -38,6 +38,63 @@ func (_m *MockOrderRepo) EXPECT() *MockOrderRepo_Expecter {
 	return &MockOrderRepo_Expecter{mock: &_m.Mock}
 }
 
+// Create provides a mock function for the type MockOrderRepo
+func (_mock *MockOrderRepo) Create(ctx context.Context, order models.OrderSnapshot) error {
+	ret := _mock.Called(ctx, order)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Create")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, models.OrderSnapshot) error); ok {
+		r0 = returnFunc(ctx, order)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockOrderRepo_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
+type MockOrderRepo_Create_Call struct {
+	*mock.Call
+}
+
+// Create is a helper method to define mock.On call
+//   - ctx context.Context
+//   - order models.OrderSnapshot
+func (_e *MockOrderRepo_Expecter) Create(ctx interface{}, order interface{}) *MockOrderRepo_Create_Call {
+	return &MockOrderRepo_Create_Call{Call: _e.mock.On("Create", ctx, order)}
+}
+
+func (_c *MockOrderRepo_Create_Call) Run(run func(ctx context.Context, order models.OrderSnapshot)) *MockOrderRepo_Create_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 models.OrderSnapshot
+		if args[1] != nil {
+			arg1 = args[1].(models.OrderSnapshot)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOrderRepo_Create_Call) Return(err error) *MockOrderRepo_Create_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockOrderRepo_Create_Call) RunAndReturn(run func(ctx context.Context, order models.OrderSnapshot) error) *MockOrderRepo_Create_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Get provides a mock function for the type MockOrderRepo
 func (_mock *MockOrderRepo) Get(ctx context.Context, id models.OrderId) (models.OrderSnapshot, error) {
 	ret := _mock.Called(ctx, id)
@@ -104,36 +161,37 @@ func (_c *MockOrderRepo_Get_Call) RunAndReturn(run func(ctx context.Context, id 
 	return _c
 }
 
-// Save provides a mock function for the type MockOrderRepo
-func (_mock *MockOrderRepo) Save(ctx context.Context, order models.OrderSnapshot) error {
-	ret := _mock.Called(ctx, order)
+// Update provides a mock function for the type MockOrderRepo
+func (_mock *MockOrderRepo) Update(ctx context.Context, order models.OrderSnapshot, from models.OrderStatus) error {
+	ret := _mock.Called(ctx, order, from)
 
 	if len(ret) == 0 {
-		panic("no return value specified for Save")
+		panic("no return value specified for Update")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, models.OrderSnapshot) error); ok {
-		r0 = returnFunc(ctx, order)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, models.OrderSnapshot, models.OrderStatus) error); ok {
+		r0 = returnFunc(ctx, order, from)
 	} else {
 		r0 = ret.Error(0)
 	}
 	return r0
 }
 
-// MockOrderRepo_Save_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Save'
-type MockOrderRepo_Save_Call struct {
+// MockOrderRepo_Update_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Update'
+type MockOrderRepo_Update_Call struct {
 	*mock.Call
 }
 
-// Save is a helper method to define mock.On call
+// Update is a helper method to define mock.On call
 //   - ctx context.Context
 //   - order models.OrderSnapshot
-func (_e *MockOrderRepo_Expecter) Save(ctx interface{}, order interface{}) *MockOrderRepo_Save_Call {
-	return &MockOrderRepo_Save_Call{Call: _e.mock.On("Save", ctx, order)}
+//   - from models.OrderStatus
+func (_e *MockOrderRepo_Expecter) Update(ctx interface{}, order interface{}, from interface{}) *MockOrderRepo_Update_Call {
+	return &MockOrderRepo_Update_Call{Call: _e.mock.On("Update", ctx, order, from)}
 }
 
-func (_c *MockOrderRepo_Save_Call) Run(run func(ctx context.Context, order models.OrderSnapshot)) *MockOrderRepo_Save_Call {
+func (_c *MockOrderRepo_Update_Call) Run(run func(ctx context.Context, order models.OrderSnapshot, from models.OrderStatus)) *MockOrderRepo_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -143,20 +201,25 @@ func (_c *MockOrderRepo_Save_Call) Run(run func(ctx context.Context, order model
 		if args[1] != nil {
 			arg1 = args[1].(models.OrderSnapshot)
 		}
+		var arg2 models.OrderStatus
+		if args[2] != nil {
+			arg2 = args[2].(models.OrderStatus)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
 }
 
-func (_c *MockOrderRepo_Save_Call) Return(err error) *MockOrderRepo_Save_Call {
+func (_c *MockOrderRepo_Update_Call) Return(err error) *MockOrderRepo_Update_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockOrderRepo_Save_Call) RunAndReturn(run func(ctx context.Context, order models.OrderSnapshot) error) *MockOrderRepo_Save_Call {
+func (_c *MockOrderRepo_Update_Call) RunAndReturn(run func(ctx context.Context, order models.OrderSnapshot, from models.OrderStatus) error) *MockOrderRepo_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

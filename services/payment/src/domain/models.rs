@@ -22,6 +22,7 @@ impl Display for TransactionId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct UserId(Uuid);
 
+#[cfg(test)]
 impl UserId {
     pub(crate) fn as_uuid(&self) -> Uuid {
         self.0
@@ -53,6 +54,7 @@ impl FromStr for UserId {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct OrderId(Uuid);
 
+#[cfg(test)]
 impl OrderId {
     pub(crate) fn as_uuid(&self) -> Uuid {
         self.0

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMapRepoSaveAndGet(t *testing.T) {
+func TestMapRepoCreateAndGet(t *testing.T) {
 	ctx := context.Background()
 
 	orderID := models.OrderId(uuid.New())
@@ -32,7 +32,7 @@ func TestMapRepoSaveAndGet(t *testing.T) {
 
 	repo := New()
 
-	err := repo.Save(ctx, snapshot)
+	err := repo.Create(ctx, snapshot)
 	require.NoError(t, err)
 
 	got, err := repo.Get(ctx, orderID)
@@ -77,7 +77,7 @@ func TestMapRepoGetReturnsSnapshotClone(t *testing.T) {
 
 	repo := New()
 
-	err := repo.Save(ctx, snapshot)
+	err := repo.Create(ctx, snapshot)
 	require.NoError(t, err)
 
 	got, err := repo.Get(ctx, orderId)
@@ -89,4 +89,80 @@ func TestMapRepoGetReturnsSnapshotClone(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, uint(1500), gotAgain.Parts[0].Price)
+}
+
+func TestMapRepoCreateRejectsExistingOrder(t *testing.T) {
+	ctx := context.Background()
+
+	repo := New()
+	snapshot := newPendingSnapshot()
+
+	require.NoError(t, repo.Create(ctx, snapshot))
+	require.Error(t, repo.Create(ctx, snapshot))
+}
+
+func TestMapRepoUpdateChangesOrderWithExpectedStatus(t *testing.T) {
+	ctx := context.Background()
+
+	repo := New()
+	snapshot := newPendingSnapshot()
+	require.NoError(t, repo.Create(ctx, snapshot))
+
+	canceled := snapshot
+	canceled.Status = models.Canceled
+
+	err := repo.Update(ctx, canceled, models.PendingPayment)
+	require.NoError(t, err)
+
+	got, err := repo.Get(ctx, snapshot.Id)
+	require.NoError(t, err)
+	require.Equal(t, models.Canceled, got.Status)
+}
+
+func TestMapRepoUpdateReturnsConflictOnUnexpectedStatus(t *testing.T) {
+	ctx := context.Background()
+
+	repo := New()
+	snapshot := newPendingSnapshot()
+	require.NoError(t, repo.Create(ctx, snapshot))
+
+	canceled := snapshot
+	canceled.Status = models.Canceled
+	require.NoError(t, repo.Update(ctx, canceled, models.PendingPayment))
+
+	paid := snapshot
+	paid.Status = models.Paid
+	paid.PaymentMethod = models.Some(models.PaymentMethodCARD)
+	paid.TransactionId = models.Some(models.TransactionId(uuid.New()))
+
+	err := repo.Update(ctx, paid, models.PendingPayment)
+	require.ErrorIs(t, err, services.ErrOrderStatusConflict)
+
+	got, err := repo.Get(ctx, snapshot.Id)
+	require.NoError(t, err)
+	require.Equal(t, models.Canceled, got.Status)
+}
+
+func TestMapRepoUpdateReturnsNotFound(t *testing.T) {
+	ctx := context.Background()
+
+	repo := New()
+
+	err := repo.Update(ctx, newPendingSnapshot(), models.PendingPayment)
+	require.ErrorIs(t, err, services.ErrOrderNotFound)
+}
+
+func newPendingSnapshot() models.OrderSnapshot {
+	return models.OrderSnapshot{
+		Id:     models.OrderId(uuid.New()),
+		UserId: models.UserId(uuid.New()),
+		Status: models.PendingPayment,
+		Parts: models.Parts{
+			{
+				Id:          models.PartId(uuid.New()),
+				Description: "engine",
+				Price:       1500,
+			},
+		},
+	}
 }

@@ -88,7 +88,7 @@ impl From<Part> for InventoryPart {
         Self {
             uuid: part.id.into(),
             name: part.name,
-            description: String::new(),
+            description: part.description,
             price: money_cents_to_proto(part.price),
             stock_quantity: stock_quantity_to_proto(part.stock_quantity),
             category: inventory_v1::PartCategory::from(part.category) as i32,
@@ -156,7 +156,7 @@ fn stock_quantity_to_proto(value: StockQuantity) -> i64 {
 #[cfg(test)]
 mod tests {
     use crate::domain::errors::PartIdError;
-    use crate::domain::models::{CountryCode, PartId, Tags};
+    use crate::domain::models::{CountryCode, PartId, PositiveMeasurement, Tags};
 
     use super::*;
 
@@ -333,5 +333,38 @@ mod tests {
 
         let err = ListPartsQuery::try_from(req).unwrap_err();
         assert!(matches!(err, InventoryRequestError::InvalidPartCategory));
+    }
+
+    #[test]
+    fn part_converts_to_proto_with_description() {
+        let measurement = |value| PositiveMeasurement::try_from(value).unwrap();
+        let part = Part {
+            id: "11111111-1111-4111-8111-111111111111".parse().unwrap(),
+            name: "Main engine".to_string(),
+            price: MoneyCents::new(12_550),
+            stock_quantity: StockQuantity::new(4),
+            category: PartCategory::Engine,
+            description: "Primary propulsion unit".to_string(),
+            dimensions: Dimensions {
+                length: measurement(1.0),
+                width: measurement(2.0),
+                height: measurement(3.0),
+                weight: measurement(4.0),
+            },
+            manufacturer: Manufacturer {
+                name: "ACME".to_string(),
+                country: CountryCode::from("US".to_string()),
+                website: "https://acme.example".to_string(),
+            },
+            tags: Tags::default(),
+            metadata: HashMap::new(),
+            created_at: std::time::SystemTime::UNIX_EPOCH,
+            updated_at: std::time::SystemTime::UNIX_EPOCH,
+        };
+
+        let proto = InventoryPart::from(part);
+
+        assert_eq!(proto.description, "Primary propulsion unit");
+        assert_eq!(proto.price, 125.5);
     }
 }

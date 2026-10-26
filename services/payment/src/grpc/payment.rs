@@ -26,7 +26,7 @@ impl PaymentService for PaymentGrpcHandler {
         request: Request<PayOrderRequest>,
     ) -> Result<Response<PayOrderResponse>, Status> {
         let command = request.into_inner().try_into()?;
-        let transaction_id = self.payment_processor.pay(command);
+        let transaction_id = self.payment_processor.pay(command)?;
         let response = PayOrderResponse {
             transaction_uuid: transaction_id.to_string(),
         };

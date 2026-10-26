@@ -12,6 +12,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stephenafamo/bob"
+	"github.com/stephenafamo/bob/dialect/psql"
+	"github.com/stephenafamo/bob/dialect/psql/um"
 	bobpgx "github.com/stephenafamo/bob/drivers/pgx"
 )
 
@@ -42,7 +44,7 @@ func (r *repo) Get(
 	return tryIntoSnapshot(order)
 }
 
-func (r *repo) Save(
+func (r *repo) Create(
 	ctx context.Context,
 	order models.OrderSnapshot,
 ) error {
@@ -65,6 +67,39 @@ func (r *repo) Save(
 	}
 
 	return tx.Commit(ctx)
+}
+
+// Update changes only the order state: parts are immutable after creation.
+func (r *repo) Update(
+	ctx context.Context,
+	order models.OrderSnapshot,
+	from models.OrderStatus,
+) error {
+	setter, err := intoOrderStateSetter(order)
+	if err != nil {
+		return err
+	}
+
+	fromStatus, err := orderStatusToDB(from)
+	if err != nil {
+		return err
+	}
+
+	affected, err := dbmodels.Orders.Update(
+		setter.UpdateMod(),
+		um.SetCol(dbmodels.Orders.Columns.UpdatedAt.Name()).To(psql.Raw("now()")),
+		dbmodels.UpdateWhere.Orders.ID.EQ(uuid.UUID(order.Id)),
+		dbmodels.UpdateWhere.Orders.Status.EQ(fromStatus),
+	).Exec(ctx, r.pool)
+	if err != nil {
+		return err
+	}
+
+	if affected == 0 {
+		return services.ErrOrderStatusConflict
+	}
+
+	return nil
 }
 
 func (r *repo) saveOrder(

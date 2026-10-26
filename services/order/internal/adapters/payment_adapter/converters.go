@@ -1,9 +1,14 @@
 package paymentadapter
 
 import (
+	"fmt"
+
 	payment "github.com/BeInBloom/big-deal/generated/go/payment/v1"
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
+	"github.com/BeInBloom/big-deal/services/order/internal/services"
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func rawTransactionIdToTransactionId(rawTransactionId string) (models.TransactionId, error) {
@@ -28,4 +33,12 @@ func paymentMethodToPaymentMethod(method models.PaymentMethod) payment.PaymentMe
 	default:
 		return payment.PaymentMethod_PAYMENT_METHOD_UNSPECIFIED
 	}
+}
+
+func payOrderErrorToError(err error) error {
+	if status.Code(err) == codes.AlreadyExists {
+		return fmt.Errorf("%w: %w", services.ErrOrderCannotBePaid, err)
+	}
+
+	return err
 }

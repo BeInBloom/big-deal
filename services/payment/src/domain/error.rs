@@ -39,3 +39,9 @@ pub(crate) enum PayOrderCommandError {
     #[error(transparent)]
     PaymentMethod(#[from] PaymentMethodError),
 }
+
+#[derive(Debug, Error, PartialEq, Eq)]
+pub(crate) enum PaymentError {
+    #[error("order is already paid with different parameters")]
+    AlreadyPaidWithDifferentParameters,
+}

@@ -33,7 +33,7 @@ func (a *PaymentAdapter) PayOrder(
 
 	res, err := a.client.PayOrder(ctx, req)
 	if err != nil {
-		return models.TransactionId{}, err
+		return models.TransactionId{}, payOrderErrorToError(err)
 	}
 
 	transactionId, err := rawTransactionIdToTransactionId(res.GetTransactionUuid())

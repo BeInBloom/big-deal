@@ -7,6 +7,7 @@ import (
 
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,7 +30,7 @@ func TestOrderServiceCreateOrder(t *testing.T) {
 		Once()
 
 	deps.repo.EXPECT().
-		Save(ctx, models.OrderSnapshot{
+		Create(ctx, models.OrderSnapshot{
 			Id:     orderId,
 			UserId: userId,
 			Status: models.PendingPayment,
@@ -91,14 +92,14 @@ func TestOrderServicePayOrderSavesPaidOrder(t *testing.T) {
 		Once()
 
 	deps.repo.EXPECT().
-		Save(ctx, models.OrderSnapshot{
+		Update(ctx, models.OrderSnapshot{
 			Id:            orderId,
 			UserId:        userId,
 			Status:        models.Paid,
 			Parts:         parts,
 			PaymentMethod: models.Some(models.PaymentMethodCARD),
 			TransactionId: models.Some(transactionId),
-		}).
+		}, models.PendingPayment).
 		Return(nil).
 		Once()
 
@@ -187,12 +188,12 @@ func TestOrderServiceCancelOrderSavesCanceledOrder(t *testing.T) {
 		Once()
 
 	deps.repo.EXPECT().
-		Save(ctx, models.OrderSnapshot{
+		Update(ctx, models.OrderSnapshot{
 			Id:     orderId,
 			UserId: userId,
 			Status: models.Canceled,
 			Parts:  parts,
-		}).
+		}, models.PendingPayment).
 		Return(nil).
 		Once()
 
@@ -270,6 +271,71 @@ func TestOrderServiceGetOrderReturnsRepoError(t *testing.T) {
 	order, err := deps.service.GetOrder(ctx, orderId)
 	require.ErrorIs(t, err, expectedErr)
 	require.Nil(t, order)
+}
+
+func TestOrderServicePayOrderReturnsCannotBePaidOnStatusConflict(t *testing.T) {
+	ctx := context.Background()
+
+	orderId := models.OrderId(uuid.New())
+	userId := models.UserId(uuid.New())
+	partId := models.PartId(uuid.New())
+	transactionId := models.TransactionId(uuid.New())
+	parts := newTestParts(partId)
+
+	deps := newOrderServiceTestDeps(t)
+
+	deps.repo.EXPECT().
+		Get(ctx, orderId).
+		Return(models.OrderSnapshot{
+			Id:     orderId,
+			UserId: userId,
+			Status: models.PendingPayment,
+			Parts:  parts,
+		}, nil).
+		Once()
+
+	deps.paymentService.EXPECT().
+		PayOrder(ctx, userId, orderId, models.PaymentMethodCARD).
+		Return(transactionId, nil).
+		Once()
+
+	deps.repo.EXPECT().
+		Update(ctx, mock.Anything, models.PendingPayment).
+		Return(ErrOrderStatusConflict).
+		Once()
+
+	order, err := deps.service.PayOrder(ctx, orderId, models.PaymentMethodCARD)
+	require.ErrorIs(t, err, ErrOrderCannotBePaid)
+	require.Zero(t, order.Id())
+}
+
+func TestOrderServiceCancelOrderReturnsCannotBeCanceledOnStatusConflict(t *testing.T) {
+	ctx := context.Background()
+
+	orderId := models.OrderId(uuid.New())
+	userId := models.UserId(uuid.New())
+	partId := models.PartId(uuid.New())
+	parts := newTestParts(partId)
+
+	deps := newOrderServiceTestDeps(t)
+
+	deps.repo.EXPECT().
+		Get(ctx, orderId).
+		Return(models.OrderSnapshot{
+			Id:     orderId,
+			UserId: userId,
+			Status: models.PendingPayment,
+			Parts:  parts,
+		}, nil).
+		Once()
+
+	deps.repo.EXPECT().
+		Update(ctx, mock.Anything, models.PendingPayment).
+		Return(ErrOrderStatusConflict).
+		Once()
+
+	err := deps.service.CancelOrder(ctx, orderId)
+	require.ErrorIs(t, err, ErrOrderCannotBeCanceled)
 }
 
 type orderServiceTestDeps struct {
