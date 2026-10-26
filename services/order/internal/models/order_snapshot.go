@@ -44,7 +44,7 @@ func (s OrderSnapshot) TryPaidOrder() (PaidOrderState, error) {
 	}
 
 	paymentMethod, ok := s.PaymentMethod.Get()
-	if !ok {
+	if !ok || !paymentMethod.Valid() {
 		return PaidOrderState{}, ErrInvalidOrderSnapshot
 	}
 

@@ -65,6 +65,96 @@ func TestOrderServiceCreateOrderReturnsPartsError(t *testing.T) {
 	require.Zero(t, order.Id())
 }
 
+func TestOrderServiceCreateOrderRejectsInvalidPartIds(t *testing.T) {
+	partId := models.PartId(uuid.New())
+
+	tests := []struct {
+		name    string
+		partIds []models.PartId
+		wantErr error
+	}{
+		{name: "empty", partIds: nil, wantErr: ErrOrderPartsRequired},
+		{name: "duplicated", partIds: []models.PartId{partId, partId}, wantErr: ErrOrderPartsDuplicated},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			deps := newOrderServiceTestDeps(t)
+
+			order, err := deps.service.CreateOrder(context.Background(), models.UserId(uuid.New()), tt.partIds)
+			require.ErrorIs(t, err, tt.wantErr)
+			require.Zero(t, order.Id())
+		})
+	}
+}
+
+func TestOrderServiceCreateOrderReturnsNotFoundForMissingPart(t *testing.T) {
+	ctx := context.Background()
+
+	foundId := models.PartId(uuid.New())
+	missingId := models.PartId(uuid.New())
+	partIds := []models.PartId{foundId, missingId}
+
+	deps := newOrderServiceTestDeps(t)
+
+	deps.partService.EXPECT().
+		ListParts(ctx, partIds).
+		Return(newTestParts(foundId), nil).
+		Once()
+
+	order, err := deps.service.CreateOrder(ctx, models.UserId(uuid.New()), partIds)
+	require.ErrorIs(t, err, ErrOrderPartsNotFound)
+	require.Zero(t, order.Id())
+}
+
+func TestOrderServiceCreateOrderKeepsRequestedPartsOrder(t *testing.T) {
+	ctx := context.Background()
+
+	orderId := models.OrderId(uuid.New())
+	userId := models.UserId(uuid.New())
+	firstId := models.PartId(uuid.New())
+	secondId := models.PartId(uuid.New())
+
+	first := models.Part{Id: firstId, Description: "engine", Price: 1500}
+	second := models.Part{Id: secondId, Description: "wing", Price: 700}
+
+	deps := newOrderServiceTestDeps(t)
+	deps.service.newId = func() models.OrderId {
+		return orderId
+	}
+
+	deps.partService.EXPECT().
+		ListParts(ctx, []models.PartId{firstId, secondId}).
+		Return(models.Parts{second, first}, nil).
+		Once()
+
+	deps.repo.EXPECT().
+		Create(ctx, models.OrderSnapshot{
+			Id:     orderId,
+			UserId: userId,
+			Status: models.PendingPayment,
+			Parts:  models.Parts{first, second},
+		}).
+		Return(nil).
+		Once()
+
+	order, err := deps.service.CreateOrder(ctx, userId, []models.PartId{firstId, secondId})
+	require.NoError(t, err)
+	require.Equal(t, uint(2200), order.Price())
+}
+
+func TestOrderServicePayOrderRejectsInvalidPaymentMethod(t *testing.T) {
+	deps := newOrderServiceTestDeps(t)
+
+	order, err := deps.service.PayOrder(
+		context.Background(),
+		models.OrderId(uuid.New()),
+		models.PaymentMethodUNKNOWN,
+	)
+	require.ErrorIs(t, err, ErrInvalidPaymentMethod)
+	require.Zero(t, order.Id())
+}
+
 func TestOrderServicePayOrderSavesPaidOrder(t *testing.T) {
 	ctx := context.Background()
 

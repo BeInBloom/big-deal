@@ -1,12 +1,17 @@
 package handlers
 
 import (
+	"errors"
+	"fmt"
+
 	orders "github.com/BeInBloom/big-deal/generated/go/order-service/openapi/v1"
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
 	"github.com/google/uuid"
 )
 
-func toAPIOrder(order models.Order) *orders.Order {
+var errUnknownPaymentMethod = errors.New("unknown payment method")
+
+func toAPIOrder(order models.Order) (*orders.Order, error) {
 	snapshot := order.Snapshot()
 
 	res := &orders.Order{
@@ -22,10 +27,15 @@ func toAPIOrder(order models.Order) *orders.Order {
 	}
 
 	if paymentMethod, ok := snapshot.PaymentMethod.Get(); ok {
-		res.PaymentMethod = orders.NewOptNilPaymentMethod(toAPIPaymentMethod(paymentMethod))
+		apiPaymentMethod, err := toAPIPaymentMethod(paymentMethod)
+		if err != nil {
+			return nil, err
+		}
+
+		res.PaymentMethod = orders.NewOptNilPaymentMethod(apiPaymentMethod)
 	}
 
-	return res
+	return res, nil
 }
 
 func toPartIds(ids []uuid.UUID) []models.PartId {
@@ -67,17 +77,17 @@ func toPaymentMethod(paymentMethod orders.PaymentMethod) models.PaymentMethod {
 	}
 }
 
-func toAPIPaymentMethod(paymentMethod models.PaymentMethod) orders.PaymentMethod {
+func toAPIPaymentMethod(paymentMethod models.PaymentMethod) (orders.PaymentMethod, error) {
 	switch paymentMethod {
 	case models.PaymentMethodCARD:
-		return orders.PaymentMethodCARD
+		return orders.PaymentMethodCARD, nil
 	case models.PaymentMethodSBP:
-		return orders.PaymentMethodSBP
+		return orders.PaymentMethodSBP, nil
 	case models.PaymentMethodCREDITCARD:
-		return orders.PaymentMethodCREDITCARD
+		return orders.PaymentMethodCREDITCARD, nil
 	case models.PaymentMethodINVESTORMONEY:
-		return orders.PaymentMethodINVESTORMONEY
+		return orders.PaymentMethodINVESTORMONEY, nil
 	default:
-		return orders.PaymentMethodUNKNOWN
+		return "", fmt.Errorf("%w: %d", errUnknownPaymentMethod, paymentMethod)
 	}
 }

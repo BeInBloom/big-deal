@@ -29,7 +29,8 @@ func TestToAPIOrderPaidOrder(t *testing.T) {
 		models.TransactionId(transactionUUID),
 	)
 
-	apiOrder := toAPIOrder(order)
+	apiOrder, err := toAPIOrder(order)
+	require.NoError(t, err)
 
 	require.Equal(t, orderUUID, apiOrder.OrderUUID)
 	require.Equal(t, userUUID, apiOrder.UserUUID)
@@ -37,7 +38,7 @@ func TestToAPIOrderPaidOrder(t *testing.T) {
 	require.Equal(t, 15.0, apiOrder.TotalPrice)
 	require.Equal(t, orders.OrderStatusPAID, apiOrder.Status)
 	require.Equal(t, transactionUUID, apiOrder.TransactionUUID.Or(uuid.Nil))
-	require.Equal(t, orders.PaymentMethodCARD, apiOrder.PaymentMethod.Or(orders.PaymentMethodUNKNOWN))
+	require.Equal(t, orders.PaymentMethodCARD, apiOrder.PaymentMethod.Or(""))
 }
 
 func TestToPartIds(t *testing.T) {
@@ -96,7 +97,7 @@ func TestToPaymentMethod(t *testing.T) {
 		},
 		{
 			name: "unknown",
-			in:   orders.PaymentMethodUNKNOWN,
+			in:   orders.PaymentMethod("BITCOIN"),
 			want: models.PaymentMethodUNKNOWN,
 		},
 	}
@@ -134,16 +135,19 @@ func TestToAPIPaymentMethod(t *testing.T) {
 			in:   models.PaymentMethodINVESTORMONEY,
 			want: orders.PaymentMethodINVESTORMONEY,
 		},
-		{
-			name: "unknown",
-			in:   models.PaymentMethodUNKNOWN,
-			want: orders.PaymentMethodUNKNOWN,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require.Equal(t, tt.want, toAPIPaymentMethod(tt.in))
+			got, err := toAPIPaymentMethod(tt.in)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestToAPIPaymentMethodRejectsUnknown(t *testing.T) {
+	_, err := toAPIPaymentMethod(models.PaymentMethodUNKNOWN)
+
+	require.ErrorIs(t, err, errUnknownPaymentMethod)
 }

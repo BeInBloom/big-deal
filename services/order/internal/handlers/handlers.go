@@ -64,7 +64,12 @@ func (h *Handlers) OrderServiceGetOrder(
 		return mapGetOrderError(err), nil
 	}
 
-	return toAPIOrder(order), nil
+	apiOrder, err := toAPIOrder(order)
+	if err != nil {
+		return newGetOrderInternalServerError(), nil
+	}
+
+	return apiOrder, nil
 }
 
 func (h *Handlers) OrderServicePayOrder(

@@ -164,3 +164,31 @@ func newTestParts(partTd PartId) Parts {
 		},
 	}
 }
+
+func TestOrderSnapshotTryPaidOrderRejectsUnknownPaymentMethod(t *testing.T) {
+	snapshot := OrderSnapshot{
+		Id:            OrderId(uuid.New()),
+		UserId:        UserId(uuid.New()),
+		Status:        Paid,
+		Parts:         newTestParts(PartId(uuid.New())),
+		PaymentMethod: Some(PaymentMethodUNKNOWN),
+		TransactionId: Some(TransactionId(uuid.New())),
+	}
+
+	_, err := snapshot.TryPaidOrder()
+	require.ErrorIs(t, err, ErrInvalidOrderSnapshot)
+}
+
+func TestPaymentMethodValid(t *testing.T) {
+	for _, method := range []PaymentMethod{
+		PaymentMethodCARD,
+		PaymentMethodSBP,
+		PaymentMethodCREDITCARD,
+		PaymentMethodINVESTORMONEY,
+	} {
+		require.True(t, method.Valid())
+	}
+
+	require.False(t, PaymentMethodUNKNOWN.Valid())
+	require.False(t, PaymentMethod(100).Valid())
+}

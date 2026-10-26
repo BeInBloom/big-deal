@@ -26,6 +26,9 @@ func (s *CreateOrderRequest) Validate() error {
 		}).ValidateLength(len(s.PartUuids)); err != nil {
 			return errors.Wrap(err, "array")
 		}
+		if err := validate.UniqueItems(s.PartUuids); err != nil {
+			return errors.Wrap(err, "array")
+		}
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
@@ -163,8 +166,6 @@ func (s *PayOrderRequest) Validate() error {
 
 func (s PaymentMethod) Validate() error {
 	switch s {
-	case "UNKNOWN":
-		return nil
 	case "CARD":
 		return nil
 	case "SBP":

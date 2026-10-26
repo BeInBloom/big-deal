@@ -10,10 +10,13 @@ import (
 
 var (
 	ErrOrderNotFound         = errors.New("order not found")
+	ErrOrderPartsRequired    = errors.New("order parts are required")
+	ErrOrderPartsDuplicated  = errors.New("order parts are duplicated")
 	ErrOrderPartsNotFound    = errors.New("order parts not found")
 	ErrOrderCannotBePaid     = errors.New("order cannot be paid")
 	ErrOrderCannotBeCanceled = errors.New("order cannot be canceled")
 	ErrOrderStatusConflict   = errors.New("order status changed concurrently")
+	ErrInvalidPaymentMethod  = errors.New("invalid payment method")
 )
 
 type OrderRepo interface {
@@ -87,7 +90,16 @@ func (s *OrderService) CreateOrder(
 	userId models.UserId,
 	partIds []models.PartId,
 ) (models.PendingOrder, error) {
-	parts, err := s.parts.ListParts(ctx, partIds)
+	if err := validatePartIds(partIds); err != nil {
+		return models.PendingOrder{}, err
+	}
+
+	found, err := s.parts.ListParts(ctx, partIds)
+	if err != nil {
+		return models.PendingOrder{}, err
+	}
+
+	parts, err := pickRequestedParts(partIds, found)
 	if err != nil {
 		return models.PendingOrder{}, err
 	}
@@ -117,6 +129,10 @@ func (s *OrderService) PayOrder(
 	id models.OrderId,
 	method models.PaymentMethod,
 ) (models.PaidOrder, error) {
+	if !method.Valid() {
+		return models.PaidOrder{}, ErrInvalidPaymentMethod
+	}
+
 	snapshot, err := s.repo.Get(ctx, id)
 	if err != nil {
 		return models.PaidOrder{}, err

@@ -22,6 +22,12 @@ func mapCancelOrderError(err error) orders.OrderServiceCancelOrderRes {
 
 func mapCreateOrderError(err error) orders.OrderServiceCreateOrderRes {
 	switch {
+	case errors.Is(err, services.ErrOrderPartsRequired):
+		res := orders.OrderServiceCreateOrderBadRequest(newErrorResponse("ORDER_PARTS_REQUIRED", "order parts are required"))
+		return &res
+	case errors.Is(err, services.ErrOrderPartsDuplicated):
+		res := orders.OrderServiceCreateOrderBadRequest(newErrorResponse("ORDER_PARTS_DUPLICATED", "order parts are duplicated"))
+		return &res
 	case errors.Is(err, services.ErrOrderPartsNotFound):
 		res := orders.OrderServiceCreateOrderBadRequest(newErrorResponse("ORDER_PARTS_NOT_FOUND", "order parts not found"))
 		return &res
@@ -44,6 +50,9 @@ func mapPayOrderError(err error) orders.OrderServicePayOrderRes {
 	switch {
 	case errors.Is(err, services.ErrOrderNotFound):
 		res := orders.OrderServicePayOrderNotFound(newErrorResponse("ORDER_NOT_FOUND", "order not found"))
+		return &res
+	case errors.Is(err, services.ErrInvalidPaymentMethod):
+		res := orders.OrderServicePayOrderBadRequest(newErrorResponse("INVALID_PAYMENT_METHOD", "invalid payment method"))
 		return &res
 	case errors.Is(err, services.ErrOrderCannotBePaid):
 		res := orders.OrderServicePayOrderConflict(newErrorResponse("ORDER_CANNOT_BE_PAID", "order cannot be paid"))

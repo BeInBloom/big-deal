@@ -12,6 +12,7 @@ properties:
     type: array
     description: Список UUID деталей
     minItems: 1
+    uniqueItems: true
     items:
       type: string
       format: uuid

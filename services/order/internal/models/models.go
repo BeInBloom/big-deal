@@ -22,6 +22,19 @@ const (
 	PaymentMethodINVESTORMONEY
 )
 
+// Valid reports whether m is a known payment method.
+func (m PaymentMethod) Valid() bool {
+	switch m {
+	case PaymentMethodCARD,
+		PaymentMethodSBP,
+		PaymentMethodCREDITCARD,
+		PaymentMethodINVESTORMONEY:
+		return true
+	default:
+		return false
+	}
+}
+
 type (
 	UserId        uuid.UUID
 	OrderId       uuid.UUID
