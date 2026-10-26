@@ -163,6 +163,11 @@ func (s *OrderService) PayOrder(
 		return models.PaidOrder{}, ErrOrderCannotBePaid
 	}
 
+	// TODO: a concurrent CancelOrder can win between the payment and Update:
+	// the money is charged, but the order stays canceled and PayOrder
+	// returns ErrOrderCannotBePaid. Needs a domain decision: an intermediate
+	// PAYMENT_IN_PROGRESS status that forbids canceling, or a compensating
+	// refund in payment.
 	transactionId, err := s.payments.PayOrder(
 		ctx, order.UserId(), order.Id(), method)
 	if errors.Is(err, ErrPaymentConflict) {
