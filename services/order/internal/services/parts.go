@@ -20,8 +20,6 @@ func validatePartIds(ids []models.PartId) error {
 	return nil
 }
 
-// pickRequestedParts returns the found parts in the requested order
-// and fails if any requested part is missing.
 func pickRequestedParts(ids []models.PartId, found models.Parts) (models.Parts, error) {
 	byId := make(map[models.PartId]models.Part, len(found))
 

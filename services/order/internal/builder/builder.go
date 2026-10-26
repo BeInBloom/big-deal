@@ -24,8 +24,6 @@ import (
 
 const psqlConnectTimeout = time.Second * 1
 
-// Build wires the order service. The returned close func releases
-// the connections Build opened and must be called after the server stops.
 func Build(cfg config.Config) (*http.Server, func() error, error) {
 	var resources closers
 
@@ -117,7 +115,6 @@ func (c *closers) add(closeFn func() error) {
 	*c = append(*c, closeFn)
 }
 
-// close runs the closers in reverse order and joins their errors.
 func (c closers) close() error {
 	errs := make([]error, 0, len(c))
 

@@ -67,7 +67,7 @@ func (r *repo) Create(
 	return tx.Commit(ctx)
 }
 
-// Update changes only the order state: parts are immutable after creation.
+// Parts are immutable after creation, so only the order row is updated.
 func (r *repo) Update(
 	ctx context.Context,
 	order models.OrderSnapshot,

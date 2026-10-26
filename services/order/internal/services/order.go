@@ -8,8 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Errors returned by OrderService. ErrOrderNotFound from OrderRepo
-// is passed through as is.
+// Errors of OrderService. ErrOrderNotFound comes from OrderRepo as is.
 var (
 	ErrOrderPartsRequired    = errors.New("order parts are required")
 	ErrOrderPartsDuplicated  = errors.New("order parts are duplicated")
@@ -26,20 +25,13 @@ var (
 	ErrOrderStatusConflict = errors.New("order status changed concurrently")
 )
 
-// Errors of the PaymentService contract.
-var (
-	// ErrPaymentConflict means the order already has a payment
-	// with different parameters.
-	ErrPaymentConflict = errors.New("payment conflicts with existing payment")
-)
+// Error of the PaymentService contract.
+var ErrPaymentConflict = errors.New("payment conflicts with existing payment")
 
 type OrderRepo interface {
-	// Get returns ErrOrderNotFound if the order does not exist.
 	Get(ctx context.Context, id models.OrderId) (models.OrderSnapshot, error)
-	// Create returns ErrOrderAlreadyExists if an order with the same id exists.
 	Create(ctx context.Context, order models.OrderSnapshot) error
-	// Update persists order only if it exists and its stored status is still
-	// from, otherwise it returns ErrOrderStatusConflict.
+	// A missing order is a conflict too, not ErrOrderNotFound.
 	Update(ctx context.Context, order models.OrderSnapshot, from models.OrderStatus) error
 }
 
@@ -189,9 +181,8 @@ func (s *OrderService) PayOrder(
 	return paidOrder, nil
 }
 
-// paidWithTransaction resolves a lost race with a concurrent PayOrder.
-// Payments are idempotent, so the winner may have stored this very
-// transaction: then the order is paid and the duplicate request succeeds.
+// Payments are idempotent, so a concurrent PayOrder that won the race
+// may have stored this very transaction: then the duplicate succeeds.
 func (s *OrderService) paidWithTransaction(
 	ctx context.Context,
 	id models.OrderId,

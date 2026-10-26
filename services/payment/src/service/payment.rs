@@ -15,10 +15,8 @@ struct Payment {
     transaction_id: TransactionId,
 }
 
-/// Payments are idempotent by order: a retry gets the original transaction.
-///
-/// Payments live in memory: the map is never pruned and is lost on restart,
-/// so idempotency only holds for the lifetime of the process.
+/// Payments are never pruned and are lost on restart,
+/// so idempotency by order holds only for the process lifetime.
 #[derive(Debug, Default)]
 pub(crate) struct PaymentProcessor {
     payments: Mutex<HashMap<OrderId, Payment>>,

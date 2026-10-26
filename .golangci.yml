@@ -95,7 +95,7 @@ formatters: # Форматтеры кода (проверка стиля)
     - gci      # Форматтер импортов (гибкая альтернатива goimports)
   settings:
     gofumpt:
-      extra: # Дополнительные строгие правила (раньше extra-rules)
+      extra: # Дополнительные строгие правила
         group-params: true
         clothe-returns: true
     gci:

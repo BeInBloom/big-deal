@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/jackc/pgx/v5/stdlib" // registers the pgx driver for goose
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -28,8 +28,7 @@ const (
 	checkViolationCode = "23514"
 )
 
-// testDB is a single Postgres container shared by all tests in the package.
-// It starts on first use, so tests skipped by -short never need Docker.
+// Started lazily, so tests skipped by -short never need Docker.
 var testDB struct {
 	once      sync.Once
 	pool      *pgxpool.Pool

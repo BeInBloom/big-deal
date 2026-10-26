@@ -22,7 +22,6 @@ const (
 	PaymentMethodINVESTORMONEY
 )
 
-// Valid reports whether m is a known payment method.
 func (m PaymentMethod) Valid() bool {
 	switch m {
 	case PaymentMethodCARD,
