@@ -9,7 +9,7 @@ type (
 type Order interface {
 	Id() OrderId
 	UserId() UserId
-	Price() uint
+	Price() Money
 	Status() OrderStatus
 	Parts() Parts
 	Snapshot() OrderSnapshot
@@ -21,7 +21,7 @@ type orderData struct {
 	parts  Parts
 }
 
-func (o orderData) Price() uint {
+func (o orderData) Price() Money {
 	return o.parts.Price()
 }
 

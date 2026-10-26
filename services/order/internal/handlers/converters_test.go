@@ -65,10 +65,6 @@ func TestToAPIPartIds(t *testing.T) {
 	require.Equal(t, []uuid.UUID{firstUUID, secondUUID}, ids)
 }
 
-func TestToAPIPrice(t *testing.T) {
-	require.Equal(t, 15.0, toAPIPrice(1500))
-}
-
 func TestToPaymentMethod(t *testing.T) {
 	tests := []struct {
 		name string

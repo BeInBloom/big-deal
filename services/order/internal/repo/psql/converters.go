@@ -84,14 +84,14 @@ func orderPartsToModel(parts dbmodels.OrderPartSlice) (models.Parts, error) {
 	result := make(models.Parts, 0, len(parts))
 
 	for _, part := range parts {
-		if part.Price < 0 || uint64(part.Price) > uint64(^uint(0)) {
+		if part.Price < 0 {
 			return nil, fmt.Errorf("%w: %d", errInvalidPartPrice, part.Price)
 		}
 
 		result = append(result, models.Part{
 			Id:          models.PartId(part.PartID),
 			Description: part.Description,
-			Price:       uint(part.Price),
+			Price:       models.Money(part.Price),
 		})
 	}
 

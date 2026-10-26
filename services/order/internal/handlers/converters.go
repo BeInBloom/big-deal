@@ -18,7 +18,7 @@ func toAPIOrder(order models.Order) (*orders.Order, error) {
 		OrderUUID:  uuid.UUID(snapshot.Id),
 		UserUUID:   uuid.UUID(snapshot.UserId),
 		PartUuids:  toAPIPartIds(snapshot.Parts.Ids()),
-		TotalPrice: toAPIPrice(order.Price()),
+		TotalPrice: order.Price().Major(),
 		Status:     orders.OrderStatus(snapshot.Status),
 	}
 
@@ -56,10 +56,6 @@ func toAPIPartIds(ids []models.PartId) []uuid.UUID {
 	}
 
 	return apiIds
-}
-
-func toAPIPrice(price uint) float64 {
-	return float64(price) / 100
 }
 
 func toPaymentMethod(paymentMethod orders.PaymentMethod) models.PaymentMethod {

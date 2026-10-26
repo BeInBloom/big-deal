@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
@@ -43,7 +44,7 @@ func TestOrderServiceCreateOrder(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, orderId, order.Id())
 	require.Equal(t, models.PendingPayment, order.Status())
-	require.Equal(t, uint(1500), order.Price())
+	require.Equal(t, models.Money(1500), order.Price())
 }
 
 func TestOrderServiceCreateOrderReturnsPartsError(t *testing.T) {
@@ -140,7 +141,7 @@ func TestOrderServiceCreateOrderKeepsRequestedPartsOrder(t *testing.T) {
 
 	order, err := deps.service.CreateOrder(ctx, userId, []models.PartId{firstId, secondId})
 	require.NoError(t, err)
-	require.Equal(t, uint(2200), order.Price())
+	require.Equal(t, models.Money(2200), order.Price())
 }
 
 func TestOrderServicePayOrderRejectsInvalidPaymentMethod(t *testing.T) {
@@ -257,6 +258,35 @@ func TestOrderServicePayOrderReturnsPaymentError(t *testing.T) {
 	require.Zero(t, order.Id())
 }
 
+func TestOrderServicePayOrderReturnsCannotBePaidOnPaymentConflict(t *testing.T) {
+	ctx := context.Background()
+
+	orderId := models.OrderId(uuid.New())
+	userId := models.UserId(uuid.New())
+	parts := newTestParts(models.PartId(uuid.New()))
+
+	deps := newOrderServiceTestDeps(t)
+
+	deps.repo.EXPECT().
+		Get(ctx, orderId).
+		Return(models.OrderSnapshot{
+			Id:     orderId,
+			UserId: userId,
+			Status: models.PendingPayment,
+			Parts:  parts,
+		}, nil).
+		Once()
+
+	deps.paymentService.EXPECT().
+		PayOrder(ctx, userId, orderId, models.PaymentMethodCARD).
+		Return(models.TransactionId{}, fmt.Errorf("wrapped: %w", ErrPaymentConflict)).
+		Once()
+
+	order, err := deps.service.PayOrder(ctx, orderId, models.PaymentMethodCARD)
+	require.ErrorIs(t, err, ErrOrderCannotBePaid)
+	require.Zero(t, order.Id())
+}
+
 func TestOrderServiceCancelOrderSavesCanceledOrder(t *testing.T) {
 	ctx := context.Background()
 
@@ -342,7 +372,7 @@ func TestOrderServiceGetOrderReturnsOrder(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, orderId, order.Id())
 	require.Equal(t, models.PendingPayment, order.Status())
-	require.Equal(t, uint(1500), order.Price())
+	require.Equal(t, models.Money(1500), order.Price())
 }
 
 func TestOrderServiceGetOrderReturnsRepoError(t *testing.T) {

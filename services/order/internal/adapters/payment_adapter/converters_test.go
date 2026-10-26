@@ -71,7 +71,7 @@ func TestPaymentMethodToPaymentMethod(t *testing.T) {
 func TestPayOrderErrorToErrorMapsAlreadyExists(t *testing.T) {
 	err := payOrderErrorToError(status.Error(codes.AlreadyExists, "already paid"))
 
-	require.ErrorIs(t, err, services.ErrOrderCannotBePaid)
+	require.ErrorIs(t, err, services.ErrPaymentConflict)
 }
 
 func TestPayOrderErrorToErrorKeepsOtherErrors(t *testing.T) {

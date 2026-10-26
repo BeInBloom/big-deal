@@ -51,7 +51,7 @@ func (h *Handlers) OrderServiceCreateOrder(
 
 	return &orders.CreateOrderResponse{
 		OrderUUID:  uuid.UUID(order.Id()),
-		TotalPrice: toAPIPrice(order.Price()),
+		TotalPrice: order.Price().Major(),
 	}, nil
 }
 

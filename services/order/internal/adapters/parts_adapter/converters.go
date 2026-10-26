@@ -1,7 +1,7 @@
 package partsadapter
 
 import (
-	"math"
+	"fmt"
 
 	inventory "github.com/BeInBloom/big-deal/generated/go/inventory/v1"
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
@@ -29,17 +29,16 @@ func rawPartToPart(rawPart *inventory.InventoryPart) (models.Part, error) {
 		return models.Part{}, err
 	}
 
-	price := floatPriceToUintPrice(rawPart.GetPrice())
+	price, err := models.MoneyFromMajor(rawPart.GetPrice())
+	if err != nil {
+		return models.Part{}, fmt.Errorf("part %s price %v: %w", partUUID, rawPart.GetPrice(), err)
+	}
 
 	return models.Part{
 		Id:          models.PartId(partUUID),
 		Description: rawPart.GetDescription(),
 		Price:       price,
 	}, nil
-}
-
-func floatPriceToUintPrice(price float64) uint {
-	return uint(math.Round(price * 100))
 }
 
 func partIdsToStrings(ids []models.PartId) []string {

@@ -7,15 +7,15 @@ type Parts []Part
 type Part struct {
 	Id          PartId
 	Description string
-	Price       uint
+	Price       Money
 }
 
 func (p Parts) Clone() Parts {
 	return slices.Clone(p)
 }
 
-func (p Parts) Price() uint {
-	var sum uint
+func (p Parts) Price() Money {
+	var sum Money
 
 	for _, part := range p {
 		sum += part.Price

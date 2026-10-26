@@ -88,7 +88,7 @@ func TestMapRepoGetReturnsSnapshotClone(t *testing.T) {
 	gotAgain, err := repo.Get(ctx, orderId)
 	require.NoError(t, err)
 
-	require.Equal(t, uint(1500), gotAgain.Parts[0].Price)
+	require.Equal(t, models.Money(1500), gotAgain.Parts[0].Price)
 }
 
 func TestMapRepoCreateRejectsExistingOrder(t *testing.T) {

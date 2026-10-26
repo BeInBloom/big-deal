@@ -19,6 +19,10 @@ var (
 	ErrInvalidPaymentMethod  = errors.New("invalid payment method")
 )
 
+// ErrPaymentConflict is returned by PaymentService when the order already
+// has a payment with different parameters.
+var ErrPaymentConflict = errors.New("payment conflicts with existing payment")
+
 type OrderRepo interface {
 	Get(ctx context.Context, id models.OrderId) (models.OrderSnapshot, error)
 	Create(ctx context.Context, order models.OrderSnapshot) error
@@ -145,6 +149,9 @@ func (s *OrderService) PayOrder(
 
 	transactionId, err := s.payments.PayOrder(
 		ctx, order.UserId(), order.Id(), method)
+	if errors.Is(err, ErrPaymentConflict) {
+		return models.PaidOrder{}, ErrOrderCannotBePaid
+	}
 	if err != nil {
 		return models.PaidOrder{}, err
 	}

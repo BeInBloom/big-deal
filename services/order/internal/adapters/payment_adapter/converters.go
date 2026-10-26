@@ -37,7 +37,7 @@ func paymentMethodToPaymentMethod(method models.PaymentMethod) payment.PaymentMe
 
 func payOrderErrorToError(err error) error {
 	if status.Code(err) == codes.AlreadyExists {
-		return fmt.Errorf("%w: %w", services.ErrOrderCannotBePaid, err)
+		return fmt.Errorf("%w: %w", services.ErrPaymentConflict, err)
 	}
 
 	return err
