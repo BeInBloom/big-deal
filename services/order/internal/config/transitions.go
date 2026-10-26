@@ -137,16 +137,26 @@ func (r rawPaymentClient) timeoutDuration() (time.Duration, error) {
 }
 
 func (r rawRepo) tryIntoRepo() (repoConfig, error) {
-	if isBlank(r.postgresURL) {
-		return repoConfig{}, nil
-	}
+	switch kind := repoKind(strings.TrimSpace(r.kind)); kind {
+	case repoKindHashMap:
+		return repoConfig{kind: kind}, nil
+	case repoKindPostgres:
+		if isBlank(r.postgresURL) {
+			return repoConfig{}, fmt.Errorf("%s: %w", envRepoPostgresURL, errPostgresURLRequired)
+		}
 
-	pgURL, err := postgresURL(r.postgresURL)
-	if err != nil {
-		return repoConfig{}, fmt.Errorf("%s: %w", envRepoPostgresURL, err)
-	}
+		pgURL, err := postgresURL(r.postgresURL)
+		if err != nil {
+			return repoConfig{}, fmt.Errorf("%s: %w", envRepoPostgresURL, err)
+		}
 
-	return repoConfig{
-		postgresURL: pgURL,
-	}, nil
+		return repoConfig{
+			kind:        kind,
+			postgresURL: pgURL,
+		}, nil
+	case "":
+		return repoConfig{}, fmt.Errorf("%s: %w", envRepoKind, errRepoKindRequired)
+	default:
+		return repoConfig{}, fmt.Errorf("%s: %w: %q", envRepoKind, errRepoKindUnknown, kind)
+	}
 }

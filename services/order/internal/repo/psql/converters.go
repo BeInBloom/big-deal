@@ -2,6 +2,7 @@ package psql
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
 	dbenums "github.com/BeInBloom/big-deal/services/order/internal/repo/psql/gen/enums"
@@ -10,8 +11,6 @@ import (
 	"github.com/aarondl/opt/omitnull"
 	"github.com/google/uuid"
 )
-
-const maxInt64 = uint64(1<<63 - 1)
 
 func tryIntoSnapshot(order *dbmodels.Order) (models.OrderSnapshot, error) {
 	status, err := orderStatusToModel(order.Status)
@@ -146,7 +145,7 @@ func intoOrderPartSetters(
 	setters := make([]*dbmodels.OrderPartSetter, 0, len(order.Parts))
 
 	for _, part := range order.Parts {
-		if uint64(part.Price) > maxInt64 {
+		if part.Price > math.MaxInt64 {
 			return nil, fmt.Errorf("%w: %d", errInvalidPartPrice, part.Price)
 		}
 

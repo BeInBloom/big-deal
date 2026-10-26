@@ -18,6 +18,7 @@ func TestLoadRawFromEnvReadsOrderConfig(t *testing.T) {
 		envInventoryTimeout:      "4s",
 		envPaymentGRPCAddr:       "payment:50051",
 		envPaymentTimeout:        "5s",
+		envRepoKind:              "postgres",
 		envRepoPostgresURL:       "postgres://order:secret@order-db:5432/orders?sslmode=disable",
 	})
 
@@ -30,6 +31,7 @@ func TestLoadRawFromEnvReadsOrderConfig(t *testing.T) {
 	require.Equal(t, "4s", rawConfig.inventory.timeout)
 	require.Equal(t, "payment:50051", rawConfig.payment.grpcAddr)
 	require.Equal(t, "5s", rawConfig.payment.timeout)
+	require.Equal(t, "postgres", rawConfig.repo.kind)
 	require.Equal(t, "postgres://order:secret@order-db:5432/orders?sslmode=disable", rawConfig.repo.postgresURL)
 }
 
@@ -41,6 +43,7 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv(envInventoryTimeout, "4s")
 	t.Setenv(envPaymentGRPCAddr, "payment:50051")
 	t.Setenv(envPaymentTimeout, "5s")
+	t.Setenv(envRepoKind, "postgres")
 	t.Setenv(envRepoPostgresURL, "postgres://order:secret@order-db:5432/orders?sslmode=disable")
 
 	cfg, err := LoadFromEnv()
@@ -60,7 +63,9 @@ func TestLoadFromEnv(t *testing.T) {
 }
 
 func TestRawTryIntoConfigUsesDefaults(t *testing.T) {
-	cfg, err := raw{}.tryIntoConfig()
+	cfg, err := raw{
+		repo: rawRepo{kind: "hash_map"},
+	}.tryIntoConfig()
 	require.NoError(t, err)
 
 	require.Equal(t, defaultHTTPAddr, cfg.HTTP().Addr())
@@ -79,6 +84,7 @@ func TestRawTryIntoConfigUsesDefaults(t *testing.T) {
 func TestRawTryIntoConfigBuildsPostgresRepo(t *testing.T) {
 	cfg, err := raw{
 		repo: rawRepo{
+			kind:        "postgres",
 			postgresURL: "postgres://order:secret@order-db:5432/orders?sslmode=disable",
 		},
 	}.tryIntoConfig()
@@ -107,6 +113,7 @@ func TestRawTryIntoConfigAppliesOverrides(t *testing.T) {
 			grpcAddr: "payment:50051",
 			timeout:  "2s",
 		},
+		repo: rawRepo{kind: "hash_map"},
 	}.tryIntoConfig()
 	require.NoError(t, err)
 
@@ -164,6 +171,7 @@ func TestRawTryIntoConfigRejectsInvalidDuration(t *testing.T) {
 func TestRawTryIntoConfigRejectsInvalidPostgresScheme(t *testing.T) {
 	_, err := raw{
 		repo: rawRepo{
+			kind:        "postgres",
 			postgresURL: "mysql://order:secret@order-db:3306/orders",
 		},
 	}.tryIntoConfig()
@@ -175,12 +183,42 @@ func TestRawTryIntoConfigRejectsInvalidPostgresScheme(t *testing.T) {
 func TestRawTryIntoConfigRejectsPostgresURLWithoutDatabaseName(t *testing.T) {
 	_, err := raw{
 		repo: rawRepo{
+			kind:        "postgres",
 			postgresURL: "postgres://order:secret@order-db:5432",
 		},
 	}.tryIntoConfig()
 
 	requireFieldError(t, err, envRepoPostgresURL)
 	require.ErrorIs(t, err, errPostgresURLDatabaseRequired)
+}
+
+func TestRawTryIntoConfigRequiresRepoKind(t *testing.T) {
+	_, err := raw{
+		repo: rawRepo{
+			postgresURL: "postgres://order:secret@order-db:5432/orders",
+		},
+	}.tryIntoConfig()
+
+	requireFieldError(t, err, envRepoKind)
+	require.ErrorIs(t, err, errRepoKindRequired)
+}
+
+func TestRawTryIntoConfigRejectsUnknownRepoKind(t *testing.T) {
+	_, err := raw{
+		repo: rawRepo{kind: "mongo"},
+	}.tryIntoConfig()
+
+	requireFieldError(t, err, envRepoKind)
+	require.ErrorIs(t, err, errRepoKindUnknown)
+}
+
+func TestRawTryIntoConfigRequiresPostgresURLForPostgresRepo(t *testing.T) {
+	_, err := raw{
+		repo: rawRepo{kind: "postgres"},
+	}.tryIntoConfig()
+
+	requireFieldError(t, err, envRepoPostgresURL)
+	require.ErrorIs(t, err, errPostgresURLRequired)
 }
 
 func mapLookup(values map[string]string) func(string) (string, bool) {

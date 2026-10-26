@@ -15,18 +15,20 @@ import (
 type App struct {
 	server          *http.Server
 	shutdownTimeout time.Duration
+	closeResources  func() error
 }
 
-func New(cfg config.Config) *App {
-	server, err := builder.Build(cfg)
+func New(cfg config.Config) (*App, error) {
+	server, closeResources, err := builder.Build(cfg)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return &App{
 		server:          server,
 		shutdownTimeout: cfg.HTTP().ShutdownTimeout(),
-	}
+		closeResources:  closeResources,
+	}, nil
 }
 
 func (a *App) Run(ctx context.Context) error {
@@ -72,14 +74,5 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	})
 
-	return g.Wait()
-}
-
-func (a *App) Shutdown(ctx context.Context) error {
-	err := a.server.Shutdown(ctx)
-	if errors.Is(err, http.ErrServerClosed) {
-		return nil
-	}
-
-	return err
+	return errors.Join(g.Wait(), a.closeResources())
 }

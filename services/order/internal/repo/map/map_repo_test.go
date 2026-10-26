@@ -98,7 +98,7 @@ func TestMapRepoCreateRejectsExistingOrder(t *testing.T) {
 	snapshot := newPendingSnapshot()
 
 	require.NoError(t, repo.Create(ctx, snapshot))
-	require.Error(t, repo.Create(ctx, snapshot))
+	require.ErrorIs(t, repo.Create(ctx, snapshot), services.ErrOrderAlreadyExists)
 }
 
 func TestMapRepoUpdateChangesOrderWithExpectedStatus(t *testing.T) {
@@ -143,13 +143,13 @@ func TestMapRepoUpdateReturnsConflictOnUnexpectedStatus(t *testing.T) {
 	require.Equal(t, models.Canceled, got.Status)
 }
 
-func TestMapRepoUpdateReturnsNotFound(t *testing.T) {
+func TestMapRepoUpdateReturnsConflictForMissingOrder(t *testing.T) {
 	ctx := context.Background()
 
 	repo := New()
 
 	err := repo.Update(ctx, newPendingSnapshot(), models.PendingPayment)
-	require.ErrorIs(t, err, services.ErrOrderNotFound)
+	require.ErrorIs(t, err, services.ErrOrderStatusConflict)
 }
 
 func newPendingSnapshot() models.OrderSnapshot {

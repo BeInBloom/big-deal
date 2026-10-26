@@ -147,3 +147,28 @@ func TestToAPIPaymentMethodRejectsUnknown(t *testing.T) {
 
 	require.ErrorIs(t, err, errUnknownPaymentMethod)
 }
+
+func TestToAPIOrderStatus(t *testing.T) {
+	tests := []struct {
+		in   models.OrderStatus
+		want orders.OrderStatus
+	}{
+		{in: models.PendingPayment, want: orders.OrderStatusPENDINGPAYMENT},
+		{in: models.Paid, want: orders.OrderStatusPAID},
+		{in: models.Canceled, want: orders.OrderStatusCANCELLED},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.in), func(t *testing.T) {
+			got, err := toAPIOrderStatus(tt.in)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestToAPIOrderStatusRejectsUnknown(t *testing.T) {
+	_, err := toAPIOrderStatus(models.OrderStatus("REFUNDED"))
+
+	require.ErrorIs(t, err, errUnknownOrderStatus)
+}

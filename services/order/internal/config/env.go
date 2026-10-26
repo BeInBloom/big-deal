@@ -10,6 +10,7 @@ const (
 	envInventoryTimeout      = "ORDER_INVENTORY_TIMEOUT"
 	envPaymentGRPCAddr       = "ORDER_PAYMENT_GRPC_ADDR"
 	envPaymentTimeout        = "ORDER_PAYMENT_TIMEOUT"
+	envRepoKind              = "ORDER_REPO_KIND"
 	envRepoPostgresURL       = "ORDER_REPO_POSTGRES_URL"
 )
 
@@ -39,6 +40,7 @@ func loadRawFromEnv(lookup func(string) (string, bool)) raw {
 			timeout:  get(envPaymentTimeout),
 		},
 		repo: rawRepo{
+			kind:        get(envRepoKind),
 			postgresURL: get(envRepoPostgresURL),
 		},
 	}

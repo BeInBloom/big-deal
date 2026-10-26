@@ -68,8 +68,16 @@ type (
 	}
 
 	repoConfig struct {
+		kind        repoKind
 		postgresURL *url.URL
 	}
+)
+
+type repoKind string
+
+const (
+	repoKindHashMap  repoKind = "hash_map"
+	repoKindPostgres repoKind = "postgres"
 )
 
 type (
@@ -97,6 +105,7 @@ type (
 	}
 
 	rawRepo struct {
+		kind        string
 		postgresURL string
 	}
 )

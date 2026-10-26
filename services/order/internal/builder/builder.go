@@ -2,6 +2,7 @@ package builder
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -23,27 +24,34 @@ import (
 
 const psqlConnectTimeout = time.Second * 1
 
-func Build(cfg config.Config) (*http.Server, error) {
+// Build wires the order service. The returned close func releases
+// the connections Build opened and must be called after the server stops.
+func Build(cfg config.Config) (*http.Server, func() error, error) {
+	var resources closers
+
 	invConn, err := grpc.NewClient(
 		cfg.Inventory().GRPCAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	resources.add(invConn.Close)
 
 	pConn, err := grpc.NewClient(
 		cfg.Payment().GRPCAddr(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, errors.Join(err, resources.close())
 	}
+	resources.add(pConn.Close)
 
-	orderRepo, err := orderRepoFactory(cfg.Repo())
+	orderRepo, closeRepo, err := orderRepoFactory(cfg.Repo())
 	if err != nil {
-		return nil, err
+		return nil, nil, errors.Join(err, resources.close())
 	}
+	resources.add(closeRepo)
 
 	parts := partsadapter.New(
 		inventory.NewInventoryServiceClient(invConn),
@@ -58,28 +66,28 @@ func Build(cfg config.Config) (*http.Server, error) {
 
 	orderServer, err := orders.NewServer(orderHandlers)
 	if err != nil {
-		return nil, err
+		return nil, nil, errors.Join(err, resources.close())
 	}
 
 	return &http.Server{
 		Addr:              cfg.HTTP().Addr(),
 		Handler:           orderServer,
 		ReadHeaderTimeout: cfg.HTTP().ReadHeaderTimeout(),
-	}, nil
+	}, resources.close, nil
 }
 
-func orderRepoFactory(cfg config.Repo) (services.OrderRepo, error) {
+func orderRepoFactory(cfg config.Repo) (services.OrderRepo, func() error, error) {
 	if cfg.IsInMemory() {
-		return maprepo.New(), nil
+		return maprepo.New(), func() error { return nil }, nil
 	}
 
 	return psqlRepo(cfg)
 }
 
-func psqlRepo(cfg config.Repo) (services.OrderRepo, error) {
+func psqlRepo(cfg config.Repo) (services.OrderRepo, func() error, error) {
 	postgresURL, ok := cfg.PostgresURL()
 	if !ok {
-		return nil, fmt.Errorf("postgres url is required")
+		return nil, nil, fmt.Errorf("postgres url is required")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), psqlConnectTimeout)
@@ -87,13 +95,35 @@ func psqlRepo(cfg config.Repo) (services.OrderRepo, error) {
 
 	pool, err := pgxpool.New(ctx, postgresURL.String())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
-		return nil, err
+		return nil, nil, err
 	}
 
-	return psql.New(pool), nil
+	closePool := func() error {
+		pool.Close()
+		return nil
+	}
+
+	return psql.New(pool), closePool, nil
+}
+
+type closers []func() error
+
+func (c *closers) add(closeFn func() error) {
+	*c = append(*c, closeFn)
+}
+
+// close runs the closers in reverse order and joins their errors.
+func (c closers) close() error {
+	errs := make([]error, 0, len(c))
+
+	for i := len(c) - 1; i >= 0; i-- {
+		errs = append(errs, c[i]())
+	}
+
+	return errors.Join(errs...)
 }

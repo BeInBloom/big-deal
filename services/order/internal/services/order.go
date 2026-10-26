@@ -16,6 +16,7 @@ var (
 	ErrOrderCannotBePaid     = errors.New("order cannot be paid")
 	ErrOrderCannotBeCanceled = errors.New("order cannot be canceled")
 	ErrOrderStatusConflict   = errors.New("order status changed concurrently")
+	ErrOrderAlreadyExists    = errors.New("order already exists")
 	ErrInvalidPaymentMethod  = errors.New("invalid payment method")
 )
 
@@ -24,10 +25,12 @@ var (
 var ErrPaymentConflict = errors.New("payment conflicts with existing payment")
 
 type OrderRepo interface {
+	// Get returns ErrOrderNotFound if the order does not exist.
 	Get(ctx context.Context, id models.OrderId) (models.OrderSnapshot, error)
+	// Create returns ErrOrderAlreadyExists if an order with the same id exists.
 	Create(ctx context.Context, order models.OrderSnapshot) error
-	// Update persists order only if its stored status is still from,
-	// otherwise it returns ErrOrderStatusConflict.
+	// Update persists order only if it exists and its stored status is still
+	// from, otherwise it returns ErrOrderStatusConflict.
 	Update(ctx context.Context, order models.OrderSnapshot, from models.OrderStatus) error
 }
 

@@ -30,7 +30,7 @@ services:
       - -dir
       - /migrations
       - postgres
-      - ${ORDER_POSTGRES_URL}
+      - ${ORDER_REPO_POSTGRES_URL}
       - up
 
 volumes:

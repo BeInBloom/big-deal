@@ -3,7 +3,7 @@ version: "3"
 # Глобальные переменные проекта
 vars:
   GO_VERSION: "1.26"
-  GOLANGCI_LINT_VERSION: "v2.1.5"
+  GOLANGCI_LINT_VERSION: "v2.15.0"
   GCI_VERSION: "v0.13.6"
   GOFUMPT_VERSION: "v0.8.0"
   BUF_VERSION: "1.53.0"
@@ -12,7 +12,7 @@ vars:
   OGEN_VERSION: "v1.12.0"
   YQ_VERSION: "v4.45.2"
   GRPCURL_VERSION: "v1.9.3"
-  MOCKERY_VERSION: "v3.7.0"
+  MOCKERY_VERSION: "v3.8.1"
   BOBGEN_VERSION: "v0.46.0"
 
   BIN_DIR: "{{.ROOT_DIR}}/bin"
@@ -171,13 +171,15 @@ tasks:
       Устанавливаемая версия: {{.GOLANGCI_LINT_VERSION}}
     cmds:
       - |
-        [ -f {{.GOLANGCI_LINT}} ] || {
-          mkdir -p {{.BIN_DIR}}
+        set -eu
+        if [ ! -x "{{.GOLANGCI_LINT}}" ] || ! "{{.GOLANGCI_LINT}}" --version 2>/dev/null | grep -q "{{trimPrefix "v" .GOLANGCI_LINT_VERSION}}"; then
+          mkdir -p "{{.BIN_DIR}}"
           echo "📦 Устанавливаем golangci-lint {{.GOLANGCI_LINT_VERSION}}..."
-          GOBIN={{.BIN_DIR}} go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.GOLANGCI_LINT_VERSION}}
-        }
+          GOBIN="{{.BIN_DIR}}" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.GOLANGCI_LINT_VERSION}}
+        fi
     status:
       - test -x {{.GOLANGCI_LINT}}
+      - '{{.GOLANGCI_LINT}} --version 2>/dev/null | grep -q "{{trimPrefix "v" .GOLANGCI_LINT_VERSION}}"'
 
   go:lint:
     desc: "Запускает golangci-lint для Go-модулей"
@@ -198,9 +200,9 @@ tasks:
         ERR=0
         echo "🔍 Линтим все модули ..."
         for mod in {{.MODULES}}; do
-          if [ -d "$mod" ]; then
+          if [ -f "services/$mod/go.mod" ]; then
             echo "🔍 Линтим $mod module"
-            {{.GOLANGCI_LINT}} run $mod/... --config=.golangci.yml || ERR=1
+            {{.GOLANGCI_LINT}} run "services/$mod/..." --config=.golangci.yml || ERR=1
           fi
         done
         exit $ERR
@@ -210,14 +212,14 @@ tasks:
     cmds:
       - |
         set -eu
-        if [ ! -x "{{.MOCKERY}}" ] || ! "{{.MOCKERY}}" --version 2>/dev/null | grep -q "{{.MOCKERY_VERSION}}"; then
+        if [ ! -x "{{.MOCKERY}}" ] || ! "{{.MOCKERY}}" version 2>/dev/null | grep -q "{{.MOCKERY_VERSION}}"; then
           mkdir -p "{{.BIN_DIR}}"
           echo "📦 Устанавливаем mockery {{.MOCKERY_VERSION}}..."
           GOBIN="{{.BIN_DIR}}" go install github.com/vektra/mockery/v3@{{.MOCKERY_VERSION}}
         fi
     status:
       - test -x {{.MOCKERY}}
-      - '{{.MOCKERY}} --version 2>/dev/null | grep -q "{{.MOCKERY_VERSION}}"'
+      - '{{.MOCKERY}} version 2>/dev/null | grep -q "{{.MOCKERY_VERSION}}"'
 
   go:gen-mocks:order:
     desc: "Генерирует mockery-моки для Order service"

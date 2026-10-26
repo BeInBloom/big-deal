@@ -58,7 +58,7 @@ func (c paymentClient) Timeout() time.Duration {
 func (c paymentClient) isPaymentClient() {}
 
 func (r repoConfig) IsInMemory() bool {
-	return r.postgresURL == nil
+	return r.kind == repoKindHashMap
 }
 
 func (r repoConfig) PostgresURL() (url.URL, bool) {

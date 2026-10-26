@@ -17,10 +17,19 @@ func NewMockOrderRepo(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockOrderRepo {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockOrderRepo{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -63,7 +72,7 @@ type MockOrderRepo_Create_Call struct {
 // Create is a helper method to define mock.On call
 //   - ctx context.Context
 //   - order models.OrderSnapshot
-func (_e *MockOrderRepo_Expecter) Create(ctx interface{}, order interface{}) *MockOrderRepo_Create_Call {
+func (_e *MockOrderRepo_Expecter) Create(ctx any, order any) *MockOrderRepo_Create_Call {
 	return &MockOrderRepo_Create_Call{Call: _e.mock.On("Create", ctx, order)}
 }
 
@@ -129,7 +138,7 @@ type MockOrderRepo_Get_Call struct {
 // Get is a helper method to define mock.On call
 //   - ctx context.Context
 //   - id models.OrderId
-func (_e *MockOrderRepo_Expecter) Get(ctx interface{}, id interface{}) *MockOrderRepo_Get_Call {
+func (_e *MockOrderRepo_Expecter) Get(ctx any, id any) *MockOrderRepo_Get_Call {
 	return &MockOrderRepo_Get_Call{Call: _e.mock.On("Get", ctx, id)}
 }
 
@@ -187,7 +196,7 @@ type MockOrderRepo_Update_Call struct {
 //   - ctx context.Context
 //   - order models.OrderSnapshot
 //   - from models.OrderStatus
-func (_e *MockOrderRepo_Expecter) Update(ctx interface{}, order interface{}, from interface{}) *MockOrderRepo_Update_Call {
+func (_e *MockOrderRepo_Expecter) Update(ctx any, order any, from any) *MockOrderRepo_Update_Call {
 	return &MockOrderRepo_Update_Call{Call: _e.mock.On("Update", ctx, order, from)}
 }
 
@@ -230,10 +239,19 @@ func NewMockPartService(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockPartService {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockPartService{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -287,7 +305,7 @@ type MockPartService_ListParts_Call struct {
 // ListParts is a helper method to define mock.On call
 //   - ctx context.Context
 //   - ids []models.PartId
-func (_e *MockPartService_Expecter) ListParts(ctx interface{}, ids interface{}) *MockPartService_ListParts_Call {
+func (_e *MockPartService_Expecter) ListParts(ctx any, ids any) *MockPartService_ListParts_Call {
 	return &MockPartService_ListParts_Call{Call: _e.mock.On("ListParts", ctx, ids)}
 }
 
@@ -325,10 +343,19 @@ func NewMockPaymentService(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockPaymentService {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockPaymentService{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -384,7 +411,7 @@ type MockPaymentService_PayOrder_Call struct {
 //   - userId models.UserId
 //   - orderId models.OrderId
 //   - method models.PaymentMethod
-func (_e *MockPaymentService_Expecter) PayOrder(ctx interface{}, userId interface{}, orderId interface{}, method interface{}) *MockPaymentService_PayOrder_Call {
+func (_e *MockPaymentService_Expecter) PayOrder(ctx any, userId any, orderId any, method any) *MockPaymentService_PayOrder_Call {
 	return &MockPaymentService_PayOrder_Call{Call: _e.mock.On("PayOrder", ctx, userId, orderId, method)}
 }
 

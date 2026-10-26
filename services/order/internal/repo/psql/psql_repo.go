@@ -57,13 +57,11 @@ func (r *repo) Create(
 	}
 
 	if err := r.saveOrder(ctx, tx, order); err != nil {
-		_ = tx.Rollback(ctx)
-		return err
+		return errors.Join(intoCreateOrderError(err), tx.Rollback(ctx))
 	}
 
 	if err := r.saveOrderParts(ctx, tx, order); err != nil {
-		_ = tx.Rollback(ctx)
-		return err
+		return errors.Join(err, tx.Rollback(ctx))
 	}
 
 	return tx.Commit(ctx)

@@ -2,14 +2,11 @@ package maprepo
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/BeInBloom/big-deal/services/order/internal/models"
 	"github.com/BeInBloom/big-deal/services/order/internal/services"
 )
-
-var errOrderAlreadyExists = errors.New("order already exists")
 
 type MapRepo struct {
 	mu     sync.RWMutex
@@ -45,7 +42,7 @@ func (r *MapRepo) Create(
 	defer r.mu.Unlock()
 
 	if _, ok := r.orders[order.Id]; ok {
-		return errOrderAlreadyExists
+		return services.ErrOrderAlreadyExists
 	}
 
 	r.orders[order.Id] = cloneOrderSnapshot(order)
@@ -61,11 +58,7 @@ func (r *MapRepo) Update(
 	defer r.mu.Unlock()
 
 	stored, ok := r.orders[order.Id]
-	if !ok {
-		return services.ErrOrderNotFound
-	}
-
-	if stored.Status != from {
+	if !ok || stored.Status != from {
 		return services.ErrOrderStatusConflict
 	}
 

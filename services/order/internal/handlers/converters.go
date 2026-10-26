@@ -9,17 +9,25 @@ import (
 	"github.com/google/uuid"
 )
 
-var errUnknownPaymentMethod = errors.New("unknown payment method")
+var (
+	errUnknownPaymentMethod = errors.New("unknown payment method")
+	errUnknownOrderStatus   = errors.New("unknown order status")
+)
 
 func toAPIOrder(order models.Order) (*orders.Order, error) {
 	snapshot := order.Snapshot()
+
+	status, err := toAPIOrderStatus(snapshot.Status)
+	if err != nil {
+		return nil, err
+	}
 
 	res := &orders.Order{
 		OrderUUID:  uuid.UUID(snapshot.Id),
 		UserUUID:   uuid.UUID(snapshot.UserId),
 		PartUuids:  toAPIPartIds(snapshot.Parts.Ids()),
 		TotalPrice: order.Price().Major(),
-		Status:     orders.OrderStatus(snapshot.Status),
+		Status:     status,
 	}
 
 	if transactionId, ok := snapshot.TransactionId.Get(); ok {
@@ -56,6 +64,19 @@ func toAPIPartIds(ids []models.PartId) []uuid.UUID {
 	}
 
 	return apiIds
+}
+
+func toAPIOrderStatus(status models.OrderStatus) (orders.OrderStatus, error) {
+	switch status {
+	case models.PendingPayment:
+		return orders.OrderStatusPENDINGPAYMENT, nil
+	case models.Paid:
+		return orders.OrderStatusPAID, nil
+	case models.Canceled:
+		return orders.OrderStatusCANCELLED, nil
+	default:
+		return "", fmt.Errorf("%w: %q", errUnknownOrderStatus, status)
+	}
 }
 
 func toPaymentMethod(paymentMethod orders.PaymentMethod) models.PaymentMethod {
